@@ -1,0 +1,8 @@
+{
+  "name": "@safepath/types",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Documented reference copy of SafePath's shared data contracts (Hazard, CitizenReport, AIAnalysisResult, ...). Not currently imported by apps/citizen-mobile as a package dependency — that app keeps its own working copy under apps/citizen-mobile/types/ to avoid a build-tooling dependency (Metro workspace resolution) this early. This package exists so the contract has one canonical, versioned home to copy from when the Admin, Municipality, and Fleet Operator apps are scaffolded, and as the definition Pydantic schemas on the backend must stay in sync with. See docs/architecture.md.",
+  "main": "src/index.ts",
+  "types": "src/index.ts"
+}

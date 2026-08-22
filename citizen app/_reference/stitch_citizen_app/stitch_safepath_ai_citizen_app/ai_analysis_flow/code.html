@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>SafePath AI - Analysis Screen</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "background": "#f7f9fc",
+                        "primary": "#00050e",
+                        "on-tertiary-fixed": "#001c39",
+                        "tertiary": "#00040d",
+                        "on-tertiary": "#ffffff",
+                        "outline": "#74777d",
+                        "on-surface": "#191c1e",
+                        "on-primary": "#ffffff",
+                        "on-background": "#191c1e",
+                        "tertiary-fixed": "#d4e3ff",
+                        "on-primary-fixed": "#081d30",
+                        "surface-container-low": "#f2f4f7",
+                        "surface-container": "#eceef1",
+                        "on-secondary-fixed-variant": "#004398",
+                        "on-primary-fixed-variant": "#36485e",
+                        "surface-container-highest": "#e0e3e6",
+                        "surface-dim": "#d8dadd",
+                        "on-error": "#ffffff",
+                        "on-secondary-fixed": "#001a43",
+                        "surface": "#f7f9fc",
+                        "tertiary-fixed-dim": "#a4c9ff",
+                        "on-primary-container": "#7587a0",
+                        "surface-container-high": "#e6e8eb",
+                        "on-tertiary-fixed-variant": "#004883",
+                        "on-secondary": "#ffffff",
+                        "inverse-primary": "#b5c8e3",
+                        "error": "#ba1a1a",
+                        "on-tertiary-container": "#4088d9",
+                        "on-error-container": "#93000a",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-fixed": "#d1e4ff",
+                        "tertiary-container": "#001e3d",
+                        "error-container": "#ffdad6",
+                        "on-surface-variant": "#44474c",
+                        "secondary-fixed-dim": "#afc6ff",
+                        "inverse-surface": "#2d3133",
+                        "surface-tint": "#4e6077",
+                        "secondary-fixed": "#d9e2ff",
+                        "surface-bright": "#f7f9fc",
+                        "on-secondary-container": "#fefcff",
+                        "outline-variant": "#c4c6cd",
+                        "primary-container": "#0b1f33",
+                        "primary-fixed-dim": "#b5c8e3",
+                        "secondary-container": "#246fe7",
+                        "secondary": "#0057c2",
+                        "inverse-on-surface": "#eff1f4",
+                        "surface-variant": "#e0e3e6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xl": "32px",
+                        "sm": "8px",
+                        "md": "16px",
+                        "margin-desktop": "24px",
+                        "base": "8px",
+                        "xs": "4px",
+                        "lg": "24px",
+                        "margin-mobile": "16px",
+                        "gutter": "16px",
+                        "safe": "env(safe-area-inset-bottom)"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "headline-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "label-sm": ["11px", { "lineHeight": "14px", "fontWeight": "500" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        /* Scanning Animation */
+        @keyframes scan {
+            0% { top: 0; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+        
+        .scan-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: rgba(36, 111, 231, 0.8);
+            box-shadow: 0 0 10px rgba(36, 111, 231, 0.5), 0 0 20px rgba(36, 111, 231, 0.3);
+            animation: scan 2.5s infinite linear;
+            z-index: 10;
+        }
+        
+        .scan-glow {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: linear-gradient(to bottom, rgba(36, 111, 231, 0), rgba(36, 111, 231, 0.2));
+            transform: translateY(-100%);
+        }
+
+        /* Pulsing dot */
+        @keyframes pulse-dot {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(186, 26, 26, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(186, 26, 26, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(186, 26, 26, 0); }
+        }
+        
+        .pulse-critical {
+            animation: pulse-dot 2s infinite;
+        }
+        
+        /* Dark Theme Override for this specific screen */
+        .ai-dark-screen {
+            background-color: #0b1f33; /* primary-container */
+            color: #ffffff; /* on-primary */
+        }
+        
+        .glass-panel {
+            background: rgba(8, 29, 48, 0.7); /* on-primary-fixed with opacity */
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .bounding-box {
+            position: absolute;
+            border: 2px solid #ba1a1a; /* error color */
+            background-color: rgba(186, 26, 26, 0.2);
+            border-radius: 4px;
+            /* Initial state */
+            opacity: 0;
+            transform: scale(1.1);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition-delay: 2s; /* Shows up after initial scan */
+        }
+        
+        .bounding-box.active {
+            opacity: 1;
+            transform: scale(1);
+        }
+    </style>
+</head>
+<body class="ai-dark-screen h-screen w-full flex flex-col font-sans overflow-hidden antialiased">
+<!-- Top App Bar (Suppressing Navigation Shell as requested for transaction/task flow) -->
+<header class="flex justify-between items-center h-16 px-margin-mobile w-full z-50 glass-panel">
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 active:scale-95 transition-transform" onclick="window.history.back()">
+<span class="material-symbols-outlined text-white">close</span>
+</button>
+<div class="font-headline-md text-headline-md text-white tracking-tight flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary-fixed">memory</span>
+            AI Analysis
+        </div>
+<div class="w-10 h-10"></div> <!-- Spacer for centering -->
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 flex flex-col relative w-full max-w-lg mx-auto">
+<!-- Image Container with Scanning Effect -->
+<div class="relative w-full aspect-[4/5] bg-black overflow-hidden shadow-2xl">
+<img alt="Captured Road Condition" class="w-full h-full object-cover opacity-80" data-alt="A gritty, realistic photo taken from a smartphone camera pointed at an asphalt road surface. The lighting is overcast daylight. The road shows significant wear, and prominently in the lower center is a deep, jagged pothole with loose gravel around its edges. The style is raw, utilitarian, and focused on road infrastructure inspection." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBO8YoWF-P0Kk8MyHDPbyWx_90VtY16XA6qdwO8l9Y4VMSEo0YfLYx1HaqRptqQcf90Z4tXPudaSJGQ4dQMHP5t3mbxEfozB-JOOnBv_WYo9h__d4EUOyqm1XlBwgsZQdFcXfVbR0tEsS479A2FlGm69ctS8ert44CXigrm7xj_U7WxABLPlyPcerznWYAPSDPziCnf_jKQR59DViBi0l12H7cFaTUsrgNS2U04KveUE-C8piTX0YZN"/>
+<!-- Scanning Animation Overlay -->
+<div class="scan-line">
+<div class="scan-glow"></div>
+</div>
+<!-- Bounding Box (Pothole Detection) -->
+<div class="bounding-box" id="detectionBox" style="top: 55%; left: 30%; width: 40%; height: 25%;">
+<div class="absolute -top-3 -right-3 w-6 h-6 bg-error rounded-full flex items-center justify-center pulse-critical border-2 border-white shadow-lg">
+<span class="material-symbols-outlined text-[14px] text-white" style="font-variation-settings: 'FILL' 1;">priority_high</span>
+</div>
+<div class="absolute -bottom-7 left-1/2 transform -translate-x-1/2 bg-error text-white font-label-sm text-label-sm px-2 py-1 rounded whitespace-nowrap shadow-md">
+                    Pothole 94%
+                </div>
+</div>
+<!-- Analysis Status Overlay -->
+<div class="absolute top-4 left-4 right-4 flex justify-between items-start">
+<div class="bg-black/60 backdrop-blur-sm rounded-lg px-3 py-1.5 flex items-center gap-2 border border-white/10">
+<div class="w-2 h-2 rounded-full bg-secondary-fixed animate-pulse"></div>
+<span class="font-label-md text-label-md text-secondary-fixed uppercase tracking-wider">Analyzing</span>
+</div>
+<div class="bg-black/60 backdrop-blur-sm rounded-lg px-3 py-1.5 flex items-center gap-2 border border-white/10">
+<span class="material-symbols-outlined text-[16px] text-white">gps_fixed</span>
+<span class="font-label-sm text-label-sm text-white">Lat 40.71, Lon -74.00</span>
+</div>
+</div>
+</div>
+<!-- Analysis Data Sheet (Anchored Bottom Modal Style) -->
+<div class="flex-1 glass-panel -mt-6 rounded-t-xl z-20 flex flex-col p-6 shadow-[0_-8px_30px_rgba(0,0,0,0.3)]">
+<div class="w-12 h-1 bg-white/20 rounded-full mx-auto mb-6"></div>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-white mb-2">ANALYZING ROAD CONDITION</h2>
+<p class="font-body-md text-body-md text-inverse-primary mb-6">SafePath AI is processing the captured imagery to identify infrastructure hazards.</p>
+<!-- Checklist Items -->
+<div class="flex flex-col gap-3 mb-6 flex-1">
+<div class="flex items-center gap-3">
+<div class="w-6 h-6 rounded-full bg-secondary/20 flex items-center justify-center text-secondary-fixed">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<span class="font-body-md text-body-md text-white">Image quality verified</span>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-6 h-6 rounded-full bg-secondary/20 flex items-center justify-center text-secondary-fixed">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<span class="font-body-md text-body-md text-white">Object detection complete</span>
+</div>
+<div class="flex items-center gap-3 opacity-50 transition-opacity duration-1000 delay-1000" id="check-severity">
+<div class="w-6 h-6 rounded-full border border-white/30 flex items-center justify-center text-white/50">
+<span class="material-symbols-outlined text-[16px] animate-spin" id="icon-severity">progress_activity</span>
+</div>
+<span class="font-body-md text-body-md text-white">Severity estimation</span>
+</div>
+<div class="flex items-center gap-3 opacity-50 transition-opacity duration-1000 delay-[1500ms]" id="check-location">
+<div class="w-6 h-6 rounded-full border border-white/30 flex items-center justify-center text-white/50">
+<span class="material-symbols-outlined text-[16px] animate-spin" id="icon-location">progress_activity</span>
+</div>
+<span class="font-body-md text-body-md text-white">Location verification</span>
+</div>
+</div>
+<!-- Result Card (Initially hidden, revealed via JS) -->
+<div class="bg-surface-container-highest/10 border border-error/30 rounded-xl p-4 mb-6 opacity-0 translate-y-4 transition-all duration-700 ease-out" id="resultCard">
+<div class="flex justify-between items-start mb-2">
+<div class="flex items-center gap-2 text-error">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">warning</span>
+<span class="font-label-md text-label-md uppercase tracking-wider">POTHOLE DETECTED</span>
+</div>
+<div class="bg-error/20 text-error font-label-sm text-label-sm px-2 py-1 rounded">HIGH severity</div>
+</div>
+<div class="flex items-center gap-4 mt-3">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-inverse-primary">Confidence</span>
+<span class="font-headline-md text-headline-md text-white">94%</span>
+</div>
+<div class="h-8 w-px bg-white/10"></div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-inverse-primary">Est. Depth</span>
+<span class="font-headline-md text-headline-md text-white">4.2"</span>
+</div>
+</div>
+</div>
+<!-- Action Button -->
+<button class="w-full h-12 bg-white/10 text-white/50 font-label-md text-label-md rounded-lg flex items-center justify-center gap-2 transition-all duration-300 pointer-events-none" disabled="" id="reviewBtn">
+<span>Processing...</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</main>
+<script>
+        // Simulate AI processing sequence
+        setTimeout(() => {
+            // Update Severity check
+            const checkSeverity = document.getElementById('check-severity');
+            const iconSeverity = document.getElementById('icon-severity');
+            checkSeverity.classList.remove('opacity-50');
+            iconSeverity.classList.remove('animate-spin', 'text-white/50');
+            iconSeverity.classList.add('text-secondary-fixed');
+            iconSeverity.textContent = 'check_circle';
+            iconSeverity.style.fontVariationSettings = "'FILL' 1";
+            iconSeverity.parentElement.classList.remove('border', 'border-white/30');
+            iconSeverity.parentElement.classList.add('bg-secondary/20');
+        }, 1200);
+
+        setTimeout(() => {
+            // Update Location check
+            const checkLocation = document.getElementById('check-location');
+            const iconLocation = document.getElementById('icon-location');
+            checkLocation.classList.remove('opacity-50');
+            iconLocation.classList.remove('animate-spin', 'text-white/50');
+            iconLocation.classList.add('text-secondary-fixed');
+            iconLocation.textContent = 'check_circle';
+            iconLocation.style.fontVariationSettings = "'FILL' 1";
+            iconLocation.parentElement.classList.remove('border', 'border-white/30');
+            iconLocation.parentElement.classList.add('bg-secondary/20');
+            
+            // Show Bounding Box
+            document.getElementById('detectionBox').classList.add('active');
+            
+            // Show Result Card
+            const resultCard = document.getElementById('resultCard');
+            resultCard.classList.remove('opacity-0', 'translate-y-4');
+            
+            // Enable Button
+            const reviewBtn = document.getElementById('reviewBtn');
+            reviewBtn.classList.remove('bg-white/10', 'text-white/50', 'pointer-events-none');
+            reviewBtn.classList.add('bg-error', 'text-white', 'hover:bg-error-container', 'hover:text-on-error-container', 'shadow-lg');
+            reviewBtn.disabled = false;
+            reviewBtn.querySelector('span:first-child').textContent = 'Review & Submit Report';
+            
+            // Stop scanning animation
+            document.querySelector('.scan-line').style.display = 'none';
+            
+        }, 2200);
+    </script>
+</body></html>

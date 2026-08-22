@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>SafePath AI - Home</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "background": "#f7f9fc",
+                        "primary": "#00050e",
+                        "on-tertiary-fixed": "#001c39",
+                        "tertiary": "#00040d",
+                        "on-tertiary": "#ffffff",
+                        "outline": "#74777d",
+                        "on-surface": "#191c1e",
+                        "on-primary": "#ffffff",
+                        "on-background": "#191c1e",
+                        "tertiary-fixed": "#d4e3ff",
+                        "on-primary-fixed": "#081d30",
+                        "surface-container-low": "#f2f4f7",
+                        "surface-container": "#eceef1",
+                        "on-secondary-fixed-variant": "#004398",
+                        "on-primary-fixed-variant": "#36485e",
+                        "surface-container-highest": "#e0e3e6",
+                        "surface-dim": "#d8dadd",
+                        "on-error": "#ffffff",
+                        "on-secondary-fixed": "#001a43",
+                        "surface": "#f7f9fc",
+                        "tertiary-fixed-dim": "#a4c9ff",
+                        "on-primary-container": "#7587a0",
+                        "surface-container-high": "#e6e8eb",
+                        "on-tertiary-fixed-variant": "#004883",
+                        "on-secondary": "#ffffff",
+                        "inverse-primary": "#b5c8e3",
+                        "error": "#ba1a1a",
+                        "on-tertiary-container": "#4088d9",
+                        "on-error-container": "#93000a",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-fixed": "#d1e4ff",
+                        "tertiary-container": "#001e3d",
+                        "error-container": "#ffdad6",
+                        "on-surface-variant": "#44474c",
+                        "secondary-fixed-dim": "#afc6ff",
+                        "inverse-surface": "#2d3133",
+                        "surface-tint": "#4e6077",
+                        "secondary-fixed": "#d9e2ff",
+                        "surface-bright": "#f7f9fc",
+                        "on-secondary-container": "#fefcff",
+                        "outline-variant": "#c4c6cd",
+                        "primary-container": "#0b1f33",
+                        "primary-fixed-dim": "#b5c8e3",
+                        "secondary-container": "#246fe7",
+                        "secondary": "#0057c2",
+                        "inverse-on-surface": "#eff1f4",
+                        "surface-variant": "#e0e3e6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xl": "32px",
+                        "sm": "8px",
+                        "md": "16px",
+                        "margin-desktop": "24px",
+                        "base": "8px",
+                        "xs": "4px",
+                        "lg": "24px",
+                        "margin-mobile": "16px",
+                        "gutter": "16px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "headline-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "label-sm": ["11px", { "lineHeight": "14px", "fontWeight": "500" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .map-container {
+            height: 60vh;
+        }
+        @media (min-width: 768px) {
+            .map-container {
+                height: 100vh;
+                position: fixed;
+                top: 0;
+                right: 0;
+                width: calc(100% - 400px);
+                z-index: 0;
+            }
+            .side-panel {
+                width: 400px;
+                position: relative;
+                z-index: 10;
+                background-color: theme('colors.background');
+                min-height: 100vh;
+            }
+        }
+        
+        .pulse-critical {
+            animation: pulse-red 2s infinite;
+        }
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(186, 26, 26, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(186, 26, 26, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(186, 26, 26, 0); }
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md antialiased overflow-x-hidden">
+<!-- Top App Bar (Desktop Only) -->
+<header class="hidden md:flex fixed top-0 w-full z-50 bg-surface/90 backdrop-blur-md shadow-sm justify-between items-center h-16 px-margin-desktop">
+<div class="flex items-center gap-md">
+<span class="material-symbols-outlined text-primary" data-icon="location_on" data-weight="fill" style="font-variation-settings: 'FILL' 1;">location_on</span>
+<span class="font-headline-md text-headline-md text-primary tracking-tight">UrbanGuard</span>
+</div>
+<nav class="flex gap-lg">
+<a class="text-secondary font-label-md text-label-md" href="#">Home</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high transition-colors px-2 py-1 rounded font-label-md text-label-md" href="#">Map</a>
+<a class="text-on-surface-variant hover:bg-surface-container-high transition-colors px-2 py-1 rounded font-label-md text-label-md" href="#">Alerts</a>
+</nav>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer active:scale-95 duration-150" data-icon="notifications">notifications</span>
+</header>
+<main class="flex flex-col md:flex-row w-full min-h-screen pt-0 md:pt-16">
+<!-- Side Panel (Desktop) / Main Content (Mobile) -->
+<div class="side-panel flex-shrink-0 flex flex-col w-full md:w-[400px] shadow-[4px_0_24px_rgba(0,0,0,0.05)] bg-background">
+<!-- Mobile Top Bar (Overlay on map initially, then scrolls up) -->
+<div class="md:hidden sticky top-0 z-40 bg-surface/90 backdrop-blur-md px-margin-mobile py-sm flex justify-between items-center shadow-sm">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary" data-icon="location_on">location_on</span>
+<span class="font-headline-md text-headline-md text-primary tracking-tight">UrbanGuard</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="notifications">notifications</span>
+</div>
+<!-- Greeting & Search (Scrollable Content) -->
+<div class="px-margin-mobile pt-lg pb-md z-10 bg-background md:bg-transparent relative">
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-1 uppercase tracking-wider">Chennai</p>
+<h1 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary mb-md">Good Morning, Sanjay</h1>
+<!-- Search Bar -->
+<div class="relative w-full shadow-[0px_4px_12px_rgba(0,0,0,0.05)] rounded-lg bg-surface-container-lowest border border-outline-variant focus-within:border-secondary transition-colors">
+<span class="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-on-surface-variant" data-icon="search">search</span>
+<input class="w-full h-12 pl-12 pr-4 bg-transparent border-none rounded-lg focus:ring-0 font-body-md text-on-surface placeholder:text-on-surface-variant" placeholder="Search a place or road" type="text"/>
+</div>
+</div>
+<!-- Mobile Map Container (Visible only on mobile) -->
+<div class="md:hidden map-container relative z-0 w-full bg-surface-container-low border-b border-surface-variant">
+<!-- Map Placeholder Image -->
+<img class="w-full h-full object-cover opacity-80 mix-blend-multiply" data-alt="A highly detailed, modern, top-down map interface showing an urban grid of Chennai. The map uses a light-mode color palette with soft gray roads, pale blue water bodies, and subtle green parks. UI elements include clean vector lines. The lighting is flat and analytical, suitable for a civic navigation application." data-location="Chennai" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD66DMwpoCmtWQhNSohwetNHBWkisxoSSD4Gfyc0LIKvh5-g65yw96yx-_Kkf2pmV-Bi7GtHsChkePm1qpuW-Wqwiqtxk3FOCVE_m_6sdp8dzuON8m7G5C1FmAtkOzUegqa3a1BLHkdJkOFjXtqy-9NtxCEFYB0TPCHsrDm1ZGiZ_6dkw0LR0EzySQnoz4U2c2LO5dc79g0Dyfe5AWm3BvIW8FcRFK4pLorVy990nBYquGEC033XyuE"/>
+<!-- Floating Map Elements -->
+<div class="absolute top-md right-md flex flex-col gap-sm">
+<button class="w-10 h-10 bg-surface-container-lowest rounded-full shadow-md flex items-center justify-center text-on-surface active:scale-95 transition-transform">
+<span class="material-symbols-outlined" data-icon="my_location">my_location</span>
+</button>
+<button class="w-10 h-10 bg-surface-container-lowest rounded-full shadow-md flex items-center justify-center text-on-surface active:scale-95 transition-transform">
+<span class="material-symbols-outlined" data-icon="layers">layers</span>
+</button>
+</div>
+<!-- Markers -->
+<!-- Critical Red Marker -->
+<div class="absolute top-1/3 left-1/4 -translate-x-1/2 -translate-y-1/2 z-10 pulse-critical">
+<div class="w-6 h-6 bg-error rounded-full border-2 border-surface-container-lowest shadow-sm flex items-center justify-center">
+<span class="material-symbols-outlined text-[14px] text-on-error" data-icon="priority_high">priority_high</span>
+</div>
+</div>
+<!-- High Orange Marker -->
+<div class="absolute top-1/2 right-1/3 -translate-x-1/2 -translate-y-1/2 z-10">
+<div class="w-6 h-6 bg-[#D97706] rounded-full border-2 border-surface-container-lowest shadow-sm flex items-center justify-center">
+<span class="material-symbols-outlined text-[14px] text-white" data-icon="warning">warning</span>
+</div>
+</div>
+<!-- Clear Green Marker -->
+<div class="absolute bottom-1/4 right-1/4 -translate-x-1/2 -translate-y-1/2 z-10">
+<div class="w-5 h-5 bg-[#10B981] rounded-full border-2 border-surface-container-lowest shadow-sm"></div>
+</div>
+</div>
+<!-- Content Area (Scrollable below map on mobile, fills side panel on desktop) -->
+<div class="flex-1 overflow-y-auto bg-background z-10 relative px-margin-mobile py-lg pb-32 md:pb-lg">
+<!-- Horizontal Stats -->
+<div class="mb-lg">
+<h2 class="font-label-md text-label-md text-on-surface-variant mb-md uppercase">Road Status Near You</h2>
+<div class="grid grid-cols-3 gap-sm">
+<div class="bg-surface-container-low rounded-lg p-md text-center border border-surface-variant">
+<p class="font-headline-md text-headline-md text-primary">12</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Hazards</p>
+</div>
+<div class="bg-error/10 rounded-lg p-md text-center border border-error/20">
+<p class="font-headline-md text-headline-md text-error">4</p>
+<p class="font-label-sm text-label-sm text-error mt-1">Critical</p>
+</div>
+<div class="bg-[#F59E0B]/10 rounded-lg p-md text-center border border-[#F59E0B]/20">
+<p class="font-headline-md text-headline-md text-[#B45309]">8</p>
+<p class="font-label-sm text-label-sm text-[#B45309] mt-1">Warnings</p>
+</div>
+</div>
+</div>
+<!-- Nearby Hazards List -->
+<div>
+<h2 class="font-label-md text-label-md text-on-surface-variant mb-md uppercase">Nearby Hazards</h2>
+<div class="flex flex-col gap-md">
+<!-- Card 1 -->
+<div class="bg-surface-container-lowest rounded-xl p-md border border-outline-variant shadow-sm relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1 h-full bg-error"></div>
+<div class="flex justify-between items-start mb-sm pl-2">
+<h3 class="font-headline-md text-headline-md text-on-surface">Pothole Cluster</h3>
+<div class="bg-error/10 px-2 py-1 rounded text-error font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="error">error</span>
+                                    HIGH
+                                </div>
+</div>
+<div class="pl-2">
+<p class="font-body-md text-body-md text-on-surface-variant mb-xs flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px]" data-icon="route">route</span>
+                                    Velachery Main Road
+                                </p>
+<div class="flex justify-between items-center mt-sm">
+<p class="font-label-sm text-label-sm text-on-surface-variant">800m away</p>
+<p class="font-label-sm text-label-sm text-secondary bg-secondary-container px-2 py-1 rounded">94% AI Confidence</p>
+</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-lowest rounded-xl p-md border border-outline-variant shadow-sm relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1 h-full bg-[#D97706]"></div>
+<div class="flex justify-between items-start mb-sm pl-2">
+<h3 class="font-headline-md text-headline-md text-on-surface">Waterlogging</h3>
+<div class="bg-[#F59E0B]/10 px-2 py-1 rounded text-[#B45309] font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="warning">warning</span>
+                                    MODERATE
+                                </div>
+</div>
+<div class="pl-2">
+<p class="font-body-md text-body-md text-on-surface-variant mb-xs flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px]" data-icon="route">route</span>
+                                    OMR Toll Plaza
+                                </p>
+<div class="flex justify-between items-center mt-sm">
+<p class="font-label-sm text-label-sm text-on-surface-variant">2.1km away</p>
+<p class="font-label-sm text-label-sm text-secondary bg-secondary-container px-2 py-1 rounded">82% AI Confidence</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Desktop Map Container -->
+<div class="hidden md:block map-container bg-surface-container-low border-l border-surface-variant">
+<img class="w-full h-full object-cover opacity-80 mix-blend-multiply" data-alt="A highly detailed, modern, top-down map interface showing an urban grid of Chennai on a wide desktop screen. The map uses a light-mode color palette with soft gray roads, pale blue water bodies, and subtle green parks. UI elements include clean vector lines. The lighting is flat and analytical, suitable for a civic navigation application." data-location="Chennai" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD56Mvm-sD_z-BFJ0zaT9mpgh8Jndm5TJiJOEoLujInz-ZAJJNmrTzaDmTOt6tY92JX9DLe9MXK-Gwff1Fyd1eNC1u3JOW2tTfG1hHQG-wfPcc0WgCvgNNLRsVjOhryJTjyKN1AwG7gLXB4BsRrRlgZ0dvqWq_tEjvkabhPBhRdh-VqyDl33ZOhP2YGSpa_HJP_NuL9glwzFGNLyiU2KBJ90X2JzHkUITBSkYkbpptVrCic5ls5hWVR"/>
+<!-- Floating Map Elements (Desktop) -->
+<div class="absolute top-lg right-lg flex flex-col gap-sm z-10">
+<button class="w-12 h-12 bg-surface-container-lowest rounded-full shadow-md flex items-center justify-center text-on-surface hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined" data-icon="my_location">my_location</span>
+</button>
+<button class="w-12 h-12 bg-surface-container-lowest rounded-full shadow-md flex items-center justify-center text-on-surface hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined" data-icon="layers">layers</span>
+</button>
+</div>
+<!-- Markers (Desktop Scale) -->
+<div class="absolute top-1/3 left-1/3 -translate-x-1/2 -translate-y-1/2 z-10 pulse-critical">
+<div class="w-8 h-8 bg-error rounded-full border-2 border-surface-container-lowest shadow-sm flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px] text-on-error" data-icon="priority_high">priority_high</span>
+</div>
+</div>
+<div class="absolute top-1/2 right-1/4 -translate-x-1/2 -translate-y-1/2 z-10">
+<div class="w-8 h-8 bg-[#D97706] rounded-full border-2 border-surface-container-lowest shadow-sm flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px] text-white" data-icon="warning">warning</span>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation Bar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 right-0 flex justify-around items-center h-20 pb-safe px-sm bg-surface rounded-t-xl shadow-[0_-4px_16px_rgba(0,0,0,0.1)] z-50">
+<div class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-4 py-1.5 active:scale-90 duration-200 cursor-pointer">
+<span class="material-symbols-outlined text-[24px]" data-icon="home" data-weight="fill" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label-sm text-label-sm mt-1">Home</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1.5 active:scale-90 duration-200 cursor-pointer">
+<span class="material-symbols-outlined text-[24px]" data-icon="map">map</span>
+<span class="font-label-sm text-label-sm mt-1">Map</span>
+</div>
+<!-- Primary Action Button integrated into nav -->
+<div class="flex flex-col items-center justify-center text-error px-4 py-1.5 active:scale-90 duration-200 cursor-pointer -mt-4">
+<div class="w-14 h-14 bg-error rounded-full shadow-lg flex items-center justify-center border-4 border-surface">
+<span class="material-symbols-outlined text-on-error text-[28px]" data-icon="add_alert">add_alert</span>
+</div>
+<span class="font-label-sm text-label-sm mt-1 font-bold">Report</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1.5 active:scale-90 duration-200 cursor-pointer">
+<span class="material-symbols-outlined text-[24px]" data-icon="notifications">notifications</span>
+<span class="font-label-sm text-label-sm mt-1">Alerts</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1.5 active:scale-90 duration-200 cursor-pointer">
+<span class="material-symbols-outlined text-[24px]" data-icon="person">person</span>
+<span class="font-label-sm text-label-sm mt-1">Profile</span>
+</div>
+</nav>
+</body></html>

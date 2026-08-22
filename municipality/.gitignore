@@ -1,0 +1,23 @@
+# --- root ---
+.env
+*.env.local
+.DS_Store
+Thumbs.db
+
+# --- node / expo ---
+node_modules/
+.expo/
+.expo-shared/
+dist/
+web-build/
+*.tsbuildinfo
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+android/
+ios/
+
+# --- editor ---
+.vscode/*
+!.vscode/extensions.json
+.idea/

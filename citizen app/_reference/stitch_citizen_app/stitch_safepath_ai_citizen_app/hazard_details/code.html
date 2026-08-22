@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Hazard Details - UrbanGuard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "background": "#f7f9fc",
+                        "primary": "#00050e",
+                        "on-tertiary-fixed": "#001c39",
+                        "tertiary": "#00040d",
+                        "on-tertiary": "#ffffff",
+                        "outline": "#74777d",
+                        "on-surface": "#191c1e",
+                        "on-primary": "#ffffff",
+                        "on-background": "#191c1e",
+                        "tertiary-fixed": "#d4e3ff",
+                        "on-primary-fixed": "#081d30",
+                        "surface-container-low": "#f2f4f7",
+                        "surface-container": "#eceef1",
+                        "on-secondary-fixed-variant": "#004398",
+                        "on-primary-fixed-variant": "#36485e",
+                        "surface-container-highest": "#e0e3e6",
+                        "surface-dim": "#d8dadd",
+                        "on-error": "#ffffff",
+                        "on-secondary-fixed": "#001a43",
+                        "surface": "#f7f9fc",
+                        "tertiary-fixed-dim": "#a4c9ff",
+                        "on-primary-container": "#7587a0",
+                        "surface-container-high": "#e6e8eb",
+                        "on-tertiary-fixed-variant": "#004883",
+                        "on-secondary": "#ffffff",
+                        "inverse-primary": "#b5c8e3",
+                        "error": "#ba1a1a",
+                        "on-tertiary-container": "#4088d9",
+                        "on-error-container": "#93000a",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-fixed": "#d1e4ff",
+                        "tertiary-container": "#001e3d",
+                        "error-container": "#ffdad6",
+                        "on-surface-variant": "#44474c",
+                        "secondary-fixed-dim": "#afc6ff",
+                        "inverse-surface": "#2d3133",
+                        "surface-tint": "#4e6077",
+                        "secondary-fixed": "#d9e2ff",
+                        "surface-bright": "#f7f9fc",
+                        "on-secondary-container": "#fefcff",
+                        "outline-variant": "#c4c6cd",
+                        "primary-container": "#0b1f33",
+                        "primary-fixed-dim": "#b5c8e3",
+                        "secondary-container": "#246fe7",
+                        "secondary": "#0057c2",
+                        "inverse-on-surface": "#eff1f4",
+                        "surface-variant": "#e0e3e6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xl": "32px",
+                        "sm": "8px",
+                        "md": "16px",
+                        "margin-desktop": "24px",
+                        "base": "8px",
+                        "xs": "4px",
+                        "lg": "24px",
+                        "margin-mobile": "16px",
+                        "gutter": "16px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "headline-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "label-sm": ["11px", { "lineHeight": "14px", "fontWeight": "500" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .fill-icon {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md antialiased pb-24 md:pb-0">
+<!-- Top App Bar -->
+<header class="bg-surface/90 dark:bg-surface-dim/90 backdrop-blur-md fixed top-0 w-full z-50 shadow-sm flex justify-between items-center h-16 px-margin-mobile">
+<button aria-label="Back" class="p-2 -ml-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-colors active:scale-95 duration-150">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<div class="font-headline-md text-headline-md text-primary tracking-tight">Hazard Details</div>
+<button aria-label="Share" class="p-2 -mr-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-colors active:scale-95 duration-150">
+<span class="material-symbols-outlined" data-icon="share">share</span>
+</button>
+</header>
+<main class="pt-16 max-w-3xl mx-auto md:px-margin-desktop px-0 pb-xl">
+<!-- Hero Image Section -->
+<div class="relative w-full h-64 md:h-80 md:rounded-b-xl overflow-hidden shadow-sm">
+<img alt="Pothole" class="object-cover w-full h-full" data-alt="A close-up, high-resolution photo of a large, dangerous pothole on a worn asphalt road. The image is bright and clearly lit, suggesting daylight. The visual style is realistic and documentary, fitting a modern civic app aesthetic. The color palette features deep greys of the road contrasting with the stark shadow inside the pothole." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCbiNfIY222_NmovQaslaOqYIWhzXKaf6nyZNKLL9teSH6YmlUpiQSe70qR7EBHRZIbOJioaZaYfh8-L8ji0TF7H5imIAcmdafzTa5ZVZiggb05KT2xcvS7M-Jprwp85lSWl4qXjimCcFHn_0T8-wHM8Sa7wN7WHLLr1HFZmW_wPzaYrPdrSVnTG8NUXGawzLd0suBcmsNyFGmotqLxECNP7NLX1ZVoOCFUIzkWz3yJYTrfzuHwHxwi"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+<div class="absolute top-md right-md bg-error/90 text-on-error px-3 py-1 rounded-full font-label-md flex items-center gap-1 shadow-sm backdrop-blur-sm">
+<span class="material-symbols-outlined text-[16px] fill-icon" data-icon="warning">warning</span>
+                HIGH SEVERITY
+            </div>
+<div class="absolute bottom-md left-md right-md text-white">
+<div class="flex items-center gap-2 mb-1">
+<span class="bg-primary-container text-on-primary-container px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Active</span>
+<span class="text-sm opacity-90 font-label-md">Reported 2h ago</span>
+</div>
+<h1 class="font-headline-lg-mobile md:font-headline-lg text-white">POTHOLE PTH-1029</h1>
+</div>
+</div>
+<div class="px-margin-mobile md:px-0 mt-md flex flex-col gap-md">
+<!-- Key Stats Bento Grid -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-sm">
+<div class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-md flex flex-col gap-1 shadow-sm">
+<span class="material-symbols-outlined text-primary-container" data-icon="location_on">location_on</span>
+<span class="font-label-sm text-on-surface-variant">Location</span>
+<span class="font-label-md text-on-surface truncate">Velachery Main Rd</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-md flex flex-col gap-1 shadow-sm">
+<span class="material-symbols-outlined text-secondary" data-icon="route">route</span>
+<span class="font-label-sm text-on-surface-variant">Distance</span>
+<span class="font-label-md text-on-surface">800m away</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-md flex flex-col gap-1 shadow-sm">
+<span class="material-symbols-outlined text-tertiary-container" data-icon="memory">memory</span>
+<span class="font-label-sm text-on-surface-variant">AI Confidence</span>
+<span class="font-label-md text-on-surface">94%</span>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-md flex flex-col gap-1 shadow-sm">
+<span class="material-symbols-outlined text-outline" data-icon="update">update</span>
+<span class="font-label-sm text-on-surface-variant">Last Verified</span>
+<span class="font-label-md text-on-surface">15m ago</span>
+</div>
+</div>
+<!-- Road Verification -->
+<section class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-md shadow-sm">
+<h2 class="font-headline-md text-on-surface mb-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary" data-icon="verified">verified</span>
+                    ROAD VERIFICATION
+                </h2>
+<p class="text-body-md text-on-surface-variant mb-md">This hazard has been independently corroborated by multiple data sources within the last hour.</p>
+<div class="space-y-3">
+<div class="flex items-center gap-3 bg-surface-container px-3 py-2 rounded-lg">
+<div class="bg-primary-fixed text-on-primary-fixed p-1.5 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]" data-icon="directions_car">directions_car</span>
+</div>
+<div class="flex-1">
+<div class="font-label-md text-on-surface">Fleet Vehicles</div>
+<div class="text-[12px] text-on-surface-variant">Observed by 3 municipal trucks</div>
+</div>
+<span class="material-symbols-outlined text-secondary" data-icon="check_circle">check_circle</span>
+</div>
+<div class="flex items-center gap-3 bg-surface-container px-3 py-2 rounded-lg">
+<div class="bg-tertiary-fixed text-on-tertiary-fixed p-1.5 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]" data-icon="group">group</span>
+</div>
+<div class="flex-1">
+<div class="font-label-md text-on-surface">Community Reports</div>
+<div class="text-[12px] text-on-surface-variant">4 user confirmations</div>
+</div>
+<span class="material-symbols-outlined text-secondary" data-icon="check_circle">check_circle</span>
+</div>
+</div>
+</section>
+<!-- Hazard Timeline -->
+<section class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl p-md shadow-sm">
+<h2 class="font-headline-md text-on-surface mb-md flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="history">history</span>
+                    HAZARD TIMELINE
+                </h2>
+<div class="relative pl-6 space-y-6 before:absolute before:inset-y-0 before:left-3 before:w-0.5 before:bg-surface-variant">
+<div class="relative">
+<div class="absolute -left-[30px] bg-surface border-2 border-secondary w-4 h-4 rounded-full mt-1"></div>
+<div class="font-label-md text-on-surface">Verified &amp; Active</div>
+<div class="text-body-md text-on-surface-variant">System confirmed hazard state. Active routing warnings enabled.</div>
+<div class="font-label-sm text-outline mt-1">Today, 08:45 AM</div>
+</div>
+<div class="relative">
+<div class="absolute -left-[30px] bg-surface-variant w-4 h-4 rounded-full mt-1"></div>
+<div class="font-label-md text-on-surface">AI Analyzed</div>
+<div class="text-body-md text-on-surface-variant">Visual model classified severity as HIGH based on depth estimation.</div>
+<div class="font-label-sm text-outline mt-1">Today, 08:32 AM</div>
+</div>
+<div class="relative">
+<div class="absolute -left-[30px] bg-surface-variant w-4 h-4 rounded-full mt-1"></div>
+<div class="font-label-md text-on-surface">Initial Report</div>
+<div class="text-body-md text-on-surface-variant">Reported by anonymous user via mobile app.</div>
+<div class="font-label-sm text-outline mt-1">Today, 08:30 AM</div>
+</div>
+</div>
+</section>
+<!-- Map Context -->
+<section class="bg-surface-container-lowest border border-outline-variant/30 rounded-xl overflow-hidden shadow-sm flex flex-col h-48 relative">
+<div class="bg-cover bg-center w-full h-full opacity-60" data-alt="A clean, minimalist vector map view of a city street intersection. The style is modern, using light grey and subtle blue tones typical of a clean civic app interface, without satellite imagery." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCAiiuzbD_XYgbSyjQR89KBNUWmfZB19l1FalXn4MxI3MfmEJMgyvcetrcm5c1ObkNy80G1Fhbp6VGYcSQ_CGU6DQgEWqUq8CUXQMZUJEa6kDt6gK3qF6w_A2x1ORcri_36cVLGCtwyPPFgYM8nmQv03WRxl7vFZiVyD_pFJczRZ7MjQYQiwfNfyHAzOSAbcMydVf9a4eZg9QMLGlcY1I95iwfhrS8EiYRJGsoaIA4iPpg1TAf1l9Yx')"></div>
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="bg-surface/80 backdrop-blur-sm p-3 rounded-full border border-outline-variant/50 flex flex-col items-center">
+<span class="material-symbols-outlined text-error fill-icon text-3xl" data-icon="location_on">location_on</span>
+<span class="font-label-sm text-primary mt-1">PTH-1029</span>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Fixed Bottom CTA (Mobile) / Regular Button (Desktop) -->
+<div class="fixed bottom-0 left-0 right-0 p-margin-mobile bg-surface/95 backdrop-blur-md border-t border-outline-variant/20 z-40 md:relative md:bg-transparent md:border-t-0 md:p-0 md:mt-md md:mb-xl md:px-margin-desktop md:max-w-3xl md:mx-auto">
+<button class="w-full bg-error hover:bg-error/90 text-on-error font-label-md py-4 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-colors active:scale-[0.98]">
+<span class="material-symbols-outlined" data-icon="report">report</span>
+            UPDATE THIS HAZARD
+        </button>
+</div>
+</body></html>

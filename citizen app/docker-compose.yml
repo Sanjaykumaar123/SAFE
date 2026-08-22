@@ -1,0 +1,31 @@
+## Local dev infrastructure for SafePath AI.
+## Brings up Postgres+PostGIS for the backend API. Mobile app talks to the
+## API over HTTP; it has no container of its own (run via `npx expo start`).
+##
+## Usage:
+##   docker compose up -d db
+##   cd backend/api && alembic upgrade head && python scripts/seed.py
+
+services:
+  db:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: safepath-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: safepath
+      POSTGRES_PASSWORD: safepath
+      POSTGRES_DB: safepath
+    ports:
+      # Host 5433 -> container 5432, so this never collides with a native
+      # Postgres install already using 5432 on the host.
+      - "5433:5432"
+    volumes:
+      - safepath_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U safepath -d safepath"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  safepath_pgdata:

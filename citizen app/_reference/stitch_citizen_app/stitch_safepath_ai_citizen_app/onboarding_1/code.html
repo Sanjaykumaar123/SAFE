@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>SafePath AI - Onboarding 1</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "background": "#f7f9fc",
+                      "primary": "#00050e",
+                      "on-tertiary-fixed": "#001c39",
+                      "tertiary": "#00040d",
+                      "on-tertiary": "#ffffff",
+                      "outline": "#74777d",
+                      "on-surface": "#191c1e",
+                      "on-primary": "#ffffff",
+                      "on-background": "#191c1e",
+                      "tertiary-fixed": "#d4e3ff",
+                      "on-primary-fixed": "#081d30",
+                      "surface-container-low": "#f2f4f7",
+                      "surface-container": "#eceef1",
+                      "on-secondary-fixed-variant": "#004398",
+                      "on-primary-fixed-variant": "#36485e",
+                      "surface-container-highest": "#e0e3e6",
+                      "surface-dim": "#d8dadd",
+                      "on-error": "#ffffff",
+                      "on-secondary-fixed": "#001a43",
+                      "surface": "#f7f9fc",
+                      "tertiary-fixed-dim": "#a4c9ff",
+                      "on-primary-container": "#7587a0",
+                      "surface-container-high": "#e6e8eb",
+                      "on-tertiary-fixed-variant": "#004883",
+                      "on-secondary": "#ffffff",
+                      "inverse-primary": "#b5c8e3",
+                      "error": "#ba1a1a",
+                      "on-tertiary-container": "#4088d9",
+                      "on-error-container": "#93000a",
+                      "surface-container-lowest": "#ffffff",
+                      "primary-fixed": "#d1e4ff",
+                      "tertiary-container": "#001e3d",
+                      "error-container": "#ffdad6",
+                      "on-surface-variant": "#44474c",
+                      "secondary-fixed-dim": "#afc6ff",
+                      "inverse-surface": "#2d3133",
+                      "surface-tint": "#4e6077",
+                      "secondary-fixed": "#d9e2ff",
+                      "surface-bright": "#f7f9fc",
+                      "on-secondary-container": "#fefcff",
+                      "outline-variant": "#c4c6cd",
+                      "primary-container": "#0b1f33",
+                      "primary-fixed-dim": "#b5c8e3",
+                      "secondary-container": "#246fe7",
+                      "secondary": "#0057c2",
+                      "inverse-on-surface": "#eff1f4",
+                      "surface-variant": "#e0e3e6"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "xl": "32px",
+                      "sm": "8px",
+                      "md": "16px",
+                      "margin-desktop": "24px",
+                      "base": "8px",
+                      "xs": "4px",
+                      "lg": "24px",
+                      "margin-mobile": "16px",
+                      "gutter": "16px"
+              },
+              "fontFamily": {
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "headline-lg-mobile": [
+                              "Inter"
+                      ],
+                      "label-sm": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "label-md": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "label-sm": [
+                              "11px",
+                              {
+                                      "lineHeight": "14px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+          .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+          }
+          
+          .glass-panel {
+              background: rgba(255, 255, 255, 0.7);
+              backdrop-filter: blur(12px);
+              -webkit-backdrop-filter: blur(12px);
+              border-top: 1px solid rgba(255, 255, 255, 0.5);
+          }
+          
+          /* Smooth image reveal */
+          .reveal-image {
+              opacity: 0;
+              transform: translateY(20px);
+              animation: revealUp 0.8s ease-out forwards;
+          }
+          
+          @keyframes revealUp {
+              to {
+                  opacity: 1;
+                  transform: translateY(0);
+              }
+          }
+      </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md h-screen w-screen overflow-hidden flex flex-col justify-between selection:bg-secondary-container selection:text-on-secondary-container">
+<!-- Top Branding / Skip -->
+<header class="flex justify-between items-center px-margin-mobile pt-lg z-10">
+<div class="flex items-center gap-xs">
+<span class="material-symbols-outlined text-primary font-headline-md" style="font-variation-settings: 'FILL' 1;">route</span>
+<span class="font-headline-md text-headline-md text-primary tracking-tight">SafePath AI</span>
+</div>
+<button class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors py-sm px-md rounded-full bg-surface-container-low hover:bg-surface-container active:scale-95 duration-150">
+            Skip
+        </button>
+</header>
+<!-- Visual Canvas Area -->
+<main class="flex-1 relative flex items-center justify-center overflow-hidden px-margin-mobile my-md">
+<!-- Abstract Background Element -->
+<div class="absolute inset-0 z-0 flex items-center justify-center opacity-30">
+<div class="w-[150%] h-[150%] rounded-full bg-gradient-to-tr from-secondary-container/40 via-surface to-tertiary-container/20 blur-3xl mix-blend-multiply"></div>
+</div>
+<!-- Main Image Container -->
+<div class="relative z-10 w-full max-w-sm aspect-[4/5] rounded-[32px] overflow-hidden shadow-2xl border-4 border-surface-container-lowest reveal-image">
+<img class="w-full h-full object-cover object-center" data-alt="A sleek, modern smartphone interface floating against a clean, light-mode background. The screen displays a highly detailed 3D topographic map with bright, stylized hazard markers glowing in critical red and warning amber. The aesthetic is corporate modern and precision-focused, utilizing a palette of crisp whites, deep navy blues, and sharp primary colors. The lighting is soft studio illumination, emphasizing depth and clarity in the UI elements." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDA7FNjcghMXnjcmscpd-KM9iSlcTl0VIhJWKY55aFJocpq50z-8kJcv3kAha6Sjm3BxkNUDSxbRn6oAIK-gvAteXlBIYEoO4_0GrPsmAZZ1mrS0wXWxpivOrq0yM6BWOmPJNkBCB4AYShTGb5eNsFswTJS3LGYxQbDnAHYvAr9UPoSv-orCia7EpWDwaJ7GkD8sX40Q01YasmJXcUFhZ8yHlUbwE3Dng9c3vZcLJFCdzTA0qfa3NIc"/>
+<!-- Floating UI Elements overlay on image to simulate app interface -->
+<div class="absolute top-md left-md right-md flex gap-sm">
+<div class="bg-surface/90 backdrop-blur-sm rounded-lg px-sm py-xs flex items-center gap-xs shadow-sm border border-outline-variant/30">
+<span class="material-symbols-outlined text-[16px] text-error">warning</span>
+<span class="font-label-sm text-label-sm text-on-surface">Pothole Ahead</span>
+</div>
+</div>
+<div class="absolute bottom-md left-1/2 -translate-x-1/2">
+<div class="w-12 h-12 rounded-full bg-secondary text-on-secondary flex items-center justify-center shadow-lg border-2 border-surface-container-lowest relative">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">navigation</span>
+<div class="absolute inset-0 rounded-full border border-secondary animate-ping opacity-50"></div>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Content & Navigation Sheet -->
+<section class="glass-panel rounded-t-[32px] px-margin-mobile pt-xl pb-lg shadow-[0_-8px_30px_rgba(0,0,0,0.04)] z-20 flex flex-col items-center text-center relative">
+<!-- Content -->
+<div class="max-w-md w-full mb-lg">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-primary mb-sm">
+                KNOW WHAT'S AHEAD.
+            </h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-[280px] mx-auto">
+                See live road hazards before they become part of your journey.
+            </p>
+</div>
+<!-- Progress & Action Container -->
+<div class="w-full max-w-md flex items-center justify-between mt-auto">
+<!-- Progress Dots -->
+<div class="flex gap-2 items-center">
+<div class="w-6 h-2 rounded-full bg-primary transition-all duration-300"></div>
+<div class="w-2 h-2 rounded-full bg-outline-variant transition-all duration-300"></div>
+<div class="w-2 h-2 rounded-full bg-outline-variant transition-all duration-300"></div>
+</div>
+<!-- Next Button -->
+<button class="bg-primary hover:bg-on-tertiary-fixed text-on-primary font-label-md text-label-md px-lg py-md rounded-full flex items-center gap-xs shadow-md transition-all active:scale-95 duration-150">
+                Next
+                <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+</div>
+</section>
+</body></html>

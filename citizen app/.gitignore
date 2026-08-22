@@ -1,0 +1,39 @@
+# --- root ---
+.env
+*.env.local
+.DS_Store
+Thumbs.db
+
+# --- node / expo ---
+node_modules/
+.expo/
+.expo-shared/
+dist/
+web-build/
+*.tsbuildinfo
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+apps/citizen-mobile/android/
+apps/citizen-mobile/ios/
+apps/citizen-mobile/.env
+
+# --- python / backend ---
+backend/api/.venv/
+backend/api/__pycache__/
+**/__pycache__/
+*.pyc
+backend/api/.pytest_cache/
+backend/api/media/
+backend/api/.env
+
+# --- docker ---
+.pgdata/
+
+# --- reference (kept in repo, not a build artifact, but large & binary-heavy) ---
+_reference/**/*.png
+
+# --- editor ---
+.vscode/*
+!.vscode/extensions.json
+.idea/

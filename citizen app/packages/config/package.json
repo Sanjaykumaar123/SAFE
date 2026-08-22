@@ -1,0 +1,8 @@
+{
+  "name": "@safepath/config",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Documented reference copy of status/type/severity constants shared across the SafePath ecosystem (mirrors apps/citizen-mobile/constants/*.ts and backend/api/app/models/enums.py). See docs/architecture.md.",
+  "main": "src/index.ts",
+  "types": "src/index.ts"
+}
