@@ -1,6 +1,6 @@
 import { apiClient } from './client';
 import { DEMO_MODE } from '@/constants/config';
-import { DEMO_HAZARDS } from '@/constants/demoData';
+import { searchPlaces } from '../routing/geocodingService';
 import type { CreateSavedLocationPayload, LocationSearchResult, SavedLocation } from '@/types';
 
 const demoLocations: SavedLocation[] = [];
@@ -30,16 +30,15 @@ export const locationsApi = {
   },
   async search(query: string): Promise<LocationSearchResult[]> {
     if (DEMO_MODE) {
-      const lower = query.toLowerCase();
-      return DEMO_HAZARDS.filter((h) => h.locationText.toLowerCase().includes(lower) || h.roadName?.toLowerCase().includes(lower)).map((h) => ({
-        label: h.locationText,
-        subtitle: h.roadName,
-        latitude: h.latitude,
-        longitude: h.longitude,
-        kind: 'HAZARD' as const,
-      }));
+      return searchPlaces(query);
     }
-    const { data } = await apiClient.get<LocationSearchResult[]>('/locations/search', { params: { q: query } });
-    return data;
+    try {
+      const { data } = await apiClient.get<LocationSearchResult[]>('/locations/search', { params: { q: query } });
+      if (data && data.length > 0) return data;
+      return searchPlaces(query);
+    } catch {
+      return searchPlaces(query);
+    }
   },
 };
+

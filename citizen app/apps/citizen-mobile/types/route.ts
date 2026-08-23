@@ -6,6 +6,23 @@ export interface RoutePoint {
   longitude: number;
 }
 
+/** Represents a selected origin or destination in the route planner */
+export interface RoutePlannerLocation {
+  point: RoutePoint;
+  label: string;
+  isCurrentLocation?: boolean;
+}
+
+/** A single turn-by-turn navigation step */
+export interface RouteStep {
+  instruction: string;
+  roadName: string;
+  distanceMeters: number;
+  durationSeconds: number;
+  maneuverType?: string;
+  maneuverModifier?: string;
+}
+
 /** A hazard that falls within the safety corridor of a calculated route. */
 export interface RouteHazardWarning {
   hazard: Hazard;
@@ -22,5 +39,6 @@ export interface SafeRouteOption {
   durationSeconds: number;
   riskScore: number;
   hazardsOnRoute: RouteHazardWarning[];
+  steps?: RouteStep[];
   isSafest: boolean;
 }

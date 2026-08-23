@@ -70,6 +70,7 @@ export function useSafeRoute() {
           coordinates: route.coordinates,
           distanceMeters: route.distanceMeters,
           durationSeconds: route.durationSeconds,
+          steps: route.steps,
           riskScore,
           hazardsOnRoute,
           isSafest: false,

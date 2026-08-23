@@ -1,21 +1,26 @@
 /**
- * The full-page real-time map — live "you are here" tracking, nearby
- * hazards that refresh on a poll, and Safe Route: search (or long-press)
- * a destination, get ranked road-routed alternatives scored by hazard
- * exposure, and follow the recommended one with a live "new hazard ahead"
- * warning if one appears on it while it's active. This is the entire
- * screen (`app/index.tsx` just renders it) — no navigation chrome, so the
- * map itself fills the device edge-to-edge like a native maps app.
- *
- * §map-provider — runs on MapLibre Native, not react-native-maps/Google
- * Maps (constants/mapStyle.ts) — no billed Google Cloud API key needed.
+ * Full-page real-time map screen with Google Maps-style Safe Route planning:
+ * - Dual From/To routing with live "you are here" GPS, reverse geocoding, and map pin dropping.
+ * - Ranked road-routed alternatives scored by hazard exposure corridor.
+ * - Turn-by-turn navigation preview and Google Maps navigation export.
+ * - Live "new hazard ahead" banner on active route.
  */
-import { Camera, type CameraRef, GeoJSONSource, Layer, Map as MapLibreMap, Marker as MapLibreMarker, UserLocation, type PressEvent, type ViewStateChangeEvent } from '@maplibre/maplibre-react-native';
+import {
+  Camera,
+  type CameraRef,
+  GeoJSONSource,
+  Layer,
+  Map as MapLibreMap,
+  Marker as MapLibreMarker,
+  UserLocation,
+  type PressEvent,
+  type ViewStateChangeEvent,
+} from '@maplibre/maplibre-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { NativeSyntheticEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MapPinOff } from 'lucide-react-native';
+import { Flag, MapPin, MapPinOff, Navigation } from 'lucide-react-native';
 
 import { DEFAULT_MAP_CENTER, DEFAULT_RADIUS_METERS } from '@/constants/config';
 import { MAP_STYLE_JSON } from '@/constants/mapStyle';
@@ -24,9 +29,10 @@ import { colors, radius, shadow, spacing, typography } from '@/constants/theme';
 import { useLiveLocation } from '@/features/location/useLiveLocation';
 import { useNearbyHazards } from '@/features/hazards/useNearbyHazards';
 import { HAZARD_CORRIDOR_METERS, useSafeRoute } from '@/features/routes/useSafeRoute';
+import { reverseGeocode } from '@/services/routing/geocodingService';
 import { distanceToPolylineMeters, haversineDistanceMeters } from '@/utils/geo';
 import { toMapLibreCoordinate } from '@/utils/geoCoordinate';
-import type { Hazard, LocationSearchResult, RoutePoint } from '@/types';
+import type { Hazard, RoutePlannerLocation, RoutePoint } from '@/types';
 
 import { HazardAlertBanner } from './HazardAlertBanner';
 import { HazardDetailCard } from './HazardDetailCard';
@@ -37,10 +43,7 @@ import { RouteSheet } from './RouteSheet';
 import { SeverityLegend } from './SeverityLegend';
 
 const FOLLOW_ZOOM = 16.5;
-const SEARCH_ROW_HEIGHT = 48;
-const CONTROLS_TOP_GAP = spacing.sm + SEARCH_ROW_HEIGHT + spacing.sm;
 const BANNER_RIGHT_INSET = spacing.md + 44 + spacing.sm;
-
 const SEVERITY_HEATMAP_WEIGHT: Record<SeverityType, number> = { LOW: 1, MEDIUM: 2, HIGH: 3, CRITICAL: 4 };
 
 export function MapScreen() {
@@ -58,14 +61,16 @@ export function MapScreen() {
   const [viewportRadius, setViewportRadius] = useState(DEFAULT_RADIUS_METERS);
   const [isFollowing, setIsFollowing] = useState(true);
   const [layersOpen, setLayersOpen] = useState(false);
-  // §heatmap — "GPS marked on the map as a heatmap for citizens". A plain
-  // MapLibre style layer (unlike react-native-maps' Google-only Heatmap),
-  // so it works identically on iOS and Android with no extra key.
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [activeSeverities, setActiveSeverities] = useState<Set<SeverityType>>(
     () => new Set(SEVERITY_OPTIONS.map((option) => option.value))
   );
-  const [destination, setDestination] = useState<{ point: RoutePoint; label: string } | null>(null);
+
+  // Route Planning Locations (Origin "From" & Destination "To")
+  const [origin, setOrigin] = useState<RoutePlannerLocation | null>(null);
+  const [destination, setDestination] = useState<RoutePlannerLocation | null>(null);
+  const [pickingTarget, setPickingTarget] = useState<'origin' | 'destination' | null>(null);
+
   const [selectedHazard, setSelectedHazard] = useState<Hazard | null>(null);
   const [bannerHazard, setBannerHazard] = useState<Hazard | null>(null);
 
@@ -75,7 +80,18 @@ export function MapScreen() {
     [nearbyHazards.data, activeSeverities]
   );
 
-  // Center on the user's location the first time a fix resolves.
+  // Default origin to live location once available if not explicitly set
+  useEffect(() => {
+    if (live.coords && !origin) {
+      setOrigin({
+        point: { latitude: live.coords.latitude, longitude: live.coords.longitude },
+        label: 'Your location',
+        isCurrentLocation: true,
+      });
+    }
+  }, [live.coords, origin]);
+
+  // Center on user's location the first time a fix resolves
   useEffect(() => {
     if (!live.coords || hasCenteredRef.current) return;
     hasCenteredRef.current = true;
@@ -84,20 +100,18 @@ export function MapScreen() {
     setViewportCenter(point);
   }, [live.coords]);
 
-  // Keep the camera on the user while follow mode is on.
+  // Keep camera on user while follow mode is on
   useEffect(() => {
-    if (!isFollowing || !live.coords || !hasCenteredRef.current) return;
+    if (!isFollowing || !live.coords || !hasCenteredRef.current || destination) return;
     cameraRef.current?.easeTo({ center: toMapLibreCoordinate(live.coords), zoom: FOLLOW_ZOOM, duration: 350 });
-  }, [isFollowing, live.coords]);
+  }, [isFollowing, live.coords, destination]);
 
-  // Reset the "seen" hazard set whenever the active route changes.
+  // Reset seen hazard set on active route change
   useEffect(() => {
-    knownRouteHazardIdsRef.current = new Set(safeRoute.selected?.hazardsOnRoute.map((warning) => warning.hazard.id) ?? []);
+    knownRouteHazardIdsRef.current = new Set(safeRoute.selected?.hazardsOnRoute.map((w) => w.hazard.id) ?? []);
   }, [safeRoute.selected?.id, safeRoute.selected?.hazardsOnRoute]);
 
-  // Live safety check: if the hazard poll turns up something new sitting on
-  // the active route, surface it immediately instead of waiting for the
-  // user to re-open the route sheet.
+  // Live safety check: alert if newly reported hazard sits on active route
   useEffect(() => {
     if (!safeRoute.selected || !nearbyHazards.data) return;
     const routeCoords = safeRoute.selected.coordinates;
@@ -106,12 +120,11 @@ export function MapScreen() {
     );
     const freshlySeen = onRouteNow.filter((hazard) => !knownRouteHazardIdsRef.current.has(hazard.id));
     if (freshlySeen.length > 0) {
-      knownRouteHazardIdsRef.current = new Set([...knownRouteHazardIdsRef.current, ...onRouteNow.map((hazard) => hazard.id)]);
+      knownRouteHazardIdsRef.current = new Set([...knownRouteHazardIdsRef.current, ...onRouteNow.map((h) => h.id)]);
       setBannerHazard(freshlySeen[0]);
       if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
       bannerTimerRef.current = setTimeout(() => setBannerHazard(null), 7000);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nearbyHazards.data, safeRoute.selected?.id]);
 
   useEffect(
@@ -135,12 +148,6 @@ export function MapScreen() {
     }, 400);
   }, []);
 
-  // MapLibre has no isolated "user dragged the map" event the way
-  // react-native-maps' onPanDrag did — `onRegionWillChange`'s
-  // `userInteraction` flag distinguishes a real touch-driven move (pan,
-  // pinch, or rotate) from one of this screen's own `easeTo` calls, which
-  // is actually a better signal than onPanDrag ever was (that only caught
-  // drags, not pinch-zoom).
   const handleRegionWillChange = useCallback((event: NativeSyntheticEvent<ViewStateChangeEvent>) => {
     if (event?.nativeEvent?.userInteraction) setIsFollowing(false);
   }, []);
@@ -166,29 +173,55 @@ export function MapScreen() {
     });
   }, []);
 
-  function startRoute(point: RoutePoint, label: string) {
-    const origin: RoutePoint = live.coords
-      ? { latitude: live.coords.latitude, longitude: live.coords.longitude }
-      : (viewportCenter ?? DEFAULT_MAP_CENTER);
-    setSelectedHazard(null);
-    setBannerHazard(null);
-    setDestination({ point, label });
-    setIsFollowing(false);
-    safeRoute.calculate(origin, point);
-  }
+  // Compute route when origin and destination are present
+  const triggerRouteCalculation = useCallback(
+    (orig: RoutePlannerLocation | null, dest: RoutePlannerLocation | null) => {
+      if (!dest) {
+        safeRoute.clear();
+        return;
+      }
 
-  // Fit the camera to whichever route is selected once real road geometry
-  // comes back (and again if the rider switches to a different alternative).
-  useEffect(() => {
-    if (safeRoute.status !== 'ready' || !safeRoute.selected) return;
-    const coords = safeRoute.selected.coordinates;
-    if (coords.length === 0) return;
-    const lats = coords.map((c) => c.latitude);
-    const lons = coords.map((c) => c.longitude);
-    const bounds: [number, number, number, number] = [Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)];
-    cameraRef.current?.fitBounds(bounds, { padding: { top: insets.top + 140, right: 60, bottom: 260, left: 60 }, duration: 600 });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [safeRoute.status, safeRoute.selected?.id]);
+      const fromPoint: RoutePoint = orig?.point ?? (live.coords ? { latitude: live.coords.latitude, longitude: live.coords.longitude } : (viewportCenter ?? DEFAULT_MAP_CENTER));
+
+      setSelectedHazard(null);
+      setBannerHazard(null);
+      setIsFollowing(false);
+      safeRoute.calculate(fromPoint, dest.point);
+    },
+    [live.coords, viewportCenter, safeRoute]
+  );
+
+  const handleSelectOrigin = useCallback(
+    (loc: RoutePlannerLocation) => {
+      setOrigin(loc);
+      if (destination) {
+        triggerRouteCalculation(loc, destination);
+      }
+    },
+    [destination, triggerRouteCalculation]
+  );
+
+  const handleSelectDestination = useCallback(
+    (loc: RoutePlannerLocation) => {
+      setDestination(loc);
+      triggerRouteCalculation(origin, loc);
+    },
+    [origin, triggerRouteCalculation]
+  );
+
+  const handleSwapPoints = useCallback(() => {
+    const currentOrigin = origin ?? (live.coords ? { point: live.coords, label: 'Your location', isCurrentLocation: true } : null);
+    const currentDestination = destination;
+
+    if (!currentOrigin && !currentDestination) return;
+
+    setOrigin(currentDestination);
+    setDestination(currentOrigin);
+
+    if (currentOrigin && currentDestination) {
+      triggerRouteCalculation(currentDestination, currentOrigin);
+    }
+  }, [origin, destination, live.coords, triggerRouteCalculation]);
 
   const handleClearRoute = useCallback(() => {
     safeRoute.clear();
@@ -197,21 +230,63 @@ export function MapScreen() {
     knownRouteHazardIdsRef.current = new Set();
   }, [safeRoute]);
 
-  const handleSelectDestination = useCallback((result: LocationSearchResult) => {
-    startRoute({ latitude: result.latitude, longitude: result.longitude }, result.label);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Fit camera bounds to show full route from Origin to Destination
+  useEffect(() => {
+    if (safeRoute.status !== 'ready' || !safeRoute.selected) return;
+    const coords = safeRoute.selected.coordinates;
+    if (coords.length === 0) return;
+    const lats = coords.map((c) => c.latitude);
+    const lons = coords.map((c) => c.longitude);
+    const bounds: [number, number, number, number] = [Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)];
+    cameraRef.current?.fitBounds(bounds, { padding: { top: insets.top + 160, right: 60, bottom: 280, left: 60 }, duration: 600 });
+  }, [safeRoute.status, safeRoute.selected?.id, insets.top]);
 
-  const handleLongPress = useCallback((event: NativeSyntheticEvent<PressEvent>) => {
-    const [longitude, latitude] = event.nativeEvent.lngLat;
-    startRoute({ latitude, longitude }, 'Dropped pin');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Map press / long press handling
+  const handleMapPress = useCallback(
+    async (event: NativeSyntheticEvent<PressEvent>) => {
+      if (!pickingTarget) return;
 
-  // §heatmap — weight by severity so a cluster of CRITICAL potholes reads
-  // hotter than the same number of LOW ones, not just "more dots = hotter".
-  // GeoJSON feature properties (not a separate `weight` prop, unlike
-  // react-native-maps' Heatmap) is how MapLibre's heatmap layer reads it.
+      const [longitude, latitude] = event.nativeEvent.lngLat;
+      const point: RoutePoint = { latitude, longitude };
+      const placeName = await reverseGeocode(point);
+
+      const loc: RoutePlannerLocation = {
+        point,
+        label: placeName,
+        isCurrentLocation: false,
+      };
+
+      if (pickingTarget === 'origin') {
+        handleSelectOrigin(loc);
+      } else {
+        handleSelectDestination(loc);
+      }
+
+      setPickingTarget(null);
+    },
+    [pickingTarget, handleSelectOrigin, handleSelectDestination]
+  );
+
+  const handleLongPress = useCallback(
+    async (event: NativeSyntheticEvent<PressEvent>) => {
+      if (pickingTarget) return;
+
+      const [longitude, latitude] = event.nativeEvent.lngLat;
+      const point: RoutePoint = { latitude, longitude };
+      const placeName = await reverseGeocode(point);
+
+      const loc: RoutePlannerLocation = {
+        point,
+        label: placeName,
+        isCurrentLocation: false,
+      };
+
+      handleSelectDestination(loc);
+    },
+    [pickingTarget, handleSelectDestination]
+  );
+
+  // Heatmap GeoJSON
   const heatmapGeoJSON = useMemo(
     () => ({
       type: 'FeatureCollection' as const,
@@ -232,6 +307,7 @@ export function MapScreen() {
         style={StyleSheet.absoluteFill}
         mapStyle={MAP_STYLE_JSON}
         compass={false}
+        onPress={handleMapPress}
         onRegionWillChange={handleRegionWillChange}
         onRegionDidChange={handleRegionDidChange}
         onLongPress={handleLongPress}
@@ -239,6 +315,7 @@ export function MapScreen() {
         <Camera ref={cameraRef} initialViewState={{ center: toMapLibreCoordinate(initialCenter), zoom: FOLLOW_ZOOM }} />
         {live.status === 'granted' ? <UserLocation animated /> : null}
 
+        {/* Heatmap or Hazard Markers */}
         {showHeatmap && heatmapGeoJSON.features.length > 0 ? (
           <GeoJSONSource id="hazard-heatmap" data={heatmapGeoJSON}>
             <Layer
@@ -269,13 +346,18 @@ export function MapScreen() {
           visibleHazards.map((hazard) => <HazardMarker key={hazard.id} hazard={hazard} onPress={setSelectedHazard} />)
         )}
 
+        {/* Safe Route Options Polylines */}
         {safeRoute.options.map((option) => {
-          const isSelected = option.id === safeRoute.selectedId;
+          const isSelected = option.id === (safeRoute.selectedId ?? safeRoute.options[0]?.id);
           return (
             <GeoJSONSource
               key={option.id}
               id={`route-${option.id}`}
-              data={{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: option.coordinates.map(toMapLibreCoordinate) } }}
+              data={{
+                type: 'Feature',
+                properties: {},
+                geometry: { type: 'LineString', coordinates: option.coordinates.map(toMapLibreCoordinate) },
+              }}
               onPress={() => safeRoute.setSelectedId(option.id)}
             >
               <Layer
@@ -283,8 +365,8 @@ export function MapScreen() {
                 id={`route-line-${option.id}`}
                 layout={{ 'line-cap': 'round', 'line-join': 'round' }}
                 paint={{
-                  'line-color': isSelected ? (option.isSafest ? colors.green : colors.primaryBlue) : `${colors.textSecondary}80`,
-                  'line-width': isSelected ? 5 : 3,
+                  'line-color': isSelected ? (option.isSafest ? colors.green : colors.primaryBlue) : `${colors.textSecondary}70`,
+                  'line-width': isSelected ? 6 : 3.5,
                   ...(isSelected ? {} : { 'line-dasharray': [2, 2] }),
                 }}
               />
@@ -292,13 +374,26 @@ export function MapScreen() {
           );
         })}
 
-        {destination ? (
-          <MapLibreMarker lngLat={toMapLibreCoordinate(destination.point)}>
-            <View style={styles.destinationPin} />
+        {/* Origin Marker (Green Pin / Start Marker) */}
+        {origin && !origin.isCurrentLocation && (
+          <MapLibreMarker lngLat={toMapLibreCoordinate(origin.point)}>
+            <View style={styles.originPin}>
+              <View style={styles.originInnerCircle} />
+            </View>
           </MapLibreMarker>
-        ) : null}
+        )}
+
+        {/* Destination Marker (Red Finish Pin) */}
+        {destination && (
+          <MapLibreMarker lngLat={toMapLibreCoordinate(destination.point)}>
+            <View style={styles.destinationPin}>
+              <Flag size={13} color={colors.white} />
+            </View>
+          </MapLibreMarker>
+        )}
       </MapLibreMap>
 
+      {/* Permission Needed Card */}
       {live.status === 'denied' && (
         <View style={styles.permissionOverlay}>
           <View style={styles.permissionCard}>
@@ -315,15 +410,25 @@ export function MapScreen() {
         </View>
       )}
 
+      {/* Google Maps-style Search & Route Planner */}
       <MapSearchBar
         topOffset={insets.top + spacing.sm}
+        origin={origin}
+        destination={destination}
+        userCoords={live.coords}
         hasActiveRoute={destination !== null}
+        isPickingOnMap={pickingTarget !== null}
+        onSelectOrigin={handleSelectOrigin}
         onSelectDestination={handleSelectDestination}
+        onSwapPoints={handleSwapPoints}
         onClear={handleClearRoute}
+        onStartPickOnMap={(target) => setPickingTarget(target)}
+        onCancelPickOnMap={() => setPickingTarget(null)}
       />
 
+      {/* Map Side Controls */}
       <MapControls
-        topOffset={insets.top + CONTROLS_TOP_GAP}
+        topOffset={insets.top + (destination ? 140 : 64)}
         isFollowing={isFollowing}
         layersActive={layersOpen}
         onRecenter={handleRecenter}
@@ -332,29 +437,34 @@ export function MapScreen() {
         onToggleHeatmap={() => setShowHeatmap((value) => !value)}
       />
 
+      {/* Severity Legend */}
       {layersOpen && (
         <SeverityLegend
-          topOffset={insets.top + CONTROLS_TOP_GAP + 44 + spacing.sm}
+          topOffset={insets.top + (destination ? 140 : 64) + 44 + spacing.sm}
           activeSeverities={activeSeverities}
           onToggleSeverity={toggleSeverity}
         />
       )}
 
+      {/* Live Route Hazard Alert Banner */}
       <HazardAlertBanner
         hazard={bannerHazard}
-        topOffset={insets.top + CONTROLS_TOP_GAP}
+        topOffset={insets.top + (destination ? 140 : 64)}
         rightOffset={BANNER_RIGHT_INSET}
         onDismiss={() => setBannerHazard(null)}
       />
 
+      {/* Hazard Detail Card (when tapped on map and not actively in route preview) */}
       {selectedHazard && !destination && (
         <HazardDetailCard hazard={selectedHazard} bottomInset={insets.bottom} onClose={() => setSelectedHazard(null)} />
       )}
 
+      {/* Google Maps-style Route Details Bottom Sheet */}
       <RouteSheet
         status={safeRoute.status}
         errorMessage={safeRoute.errorMessage}
-        destinationLabel={destination?.label ?? null}
+        origin={origin}
+        destination={destination}
         options={safeRoute.options}
         selectedId={safeRoute.selectedId}
         onSelect={safeRoute.setSelectedId}
@@ -367,14 +477,45 @@ export function MapScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  destinationPin: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.primaryBlue, borderWidth: 3, borderColor: colors.white, ...shadow.sm },
+
+  // Origin & Destination Pin Styles
+  originPin: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.green,
+    borderWidth: 3,
+    borderColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadow.md,
+  },
+  originInnerCircle: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.white,
+  },
+  destinationPin: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.critical,
+    borderWidth: 3,
+    borderColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadow.md,
+  },
+
+  // Permission Overlay
   permissionOverlay: {
     ...StyleSheet.absoluteFill,
     backgroundColor: colors.overlay,
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.lg,
-    zIndex: 10,
+    zIndex: 30,
   },
   permissionCard: {
     width: '100%',
