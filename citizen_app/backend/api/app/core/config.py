@@ -52,10 +52,12 @@ class Settings(BaseSettings):
 
 
     # --- CORS ---
-    CORS_ORIGINS: str = "http://localhost:8081,http://localhost:19006"
+    CORS_ORIGINS: str = "*"
 
     @property
     def cors_origins_list(self) -> list[str]:
+        if self.CORS_ORIGINS == "*":
+            return ["*"]
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
 
 
