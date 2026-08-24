@@ -1,0 +1,150 @@
+{
+  "validation_metrics": {
+    "Baseline Copy": {
+      "box_map50": 0.658806340427915,
+      "box_map50_95": 0.4014705245225344,
+      "box_precision": 0.7799143605656293,
+      "box_recall": 0.572139303482587,
+      "seg_map50": 0.6772352790554195,
+      "seg_map50_95": 0.3891612830313198,
+      "seg_precision": 0.691176896226756,
+      "seg_recall": 0.6666666666666666,
+      "val_speed_ms": {
+        "preprocess": 19.540456666436512,
+        "inference": 27.649451666608606,
+        "loss": 0.012243333427856365,
+        "postprocess": 11.600704999970427
+      }
+    },
+    "Fine-Tuned Final": {
+      "box_map50": 0.6734509329102014,
+      "box_map50_95": 0.4115942516660261,
+      "box_precision": 0.7594361452100187,
+      "box_recall": 0.5920398009950248,
+      "seg_map50": 0.6824930243907313,
+      "seg_map50_95": 0.39239366332110637,
+      "seg_precision": 0.7678929916556084,
+      "seg_recall": 0.5970149253731343,
+      "val_speed_ms": {
+        "preprocess": 12.281144999724347,
+        "inference": 16.01680000021588,
+        "loss": 0.001638333439283694,
+        "postprocess": 11.316386666779483
+      }
+    }
+  },
+  "image_sizes": {
+    "imgsz_1280": {
+      "frames_tested": 100,
+      "inferred_frames": 100,
+      "total_time_sec": 8.85,
+      "effective_fps": 11.3,
+      "avg_latency_ms": 83.47,
+      "unique_potholes_tracked": 6
+    },
+    "imgsz_640": {
+      "frames_tested": 100,
+      "inferred_frames": 100,
+      "total_time_sec": 5.96,
+      "effective_fps": 16.77,
+      "avg_latency_ms": 55.3,
+      "unique_potholes_tracked": 6
+    },
+    "imgsz_512": {
+      "frames_tested": 100,
+      "inferred_frames": 100,
+      "total_time_sec": 5.99,
+      "effective_fps": 16.7,
+      "avg_latency_ms": 55.53,
+      "unique_potholes_tracked": 7
+    },
+    "imgsz_480": {
+      "frames_tested": 100,
+      "inferred_frames": 100,
+      "total_time_sec": 6.07,
+      "effective_fps": 16.47,
+      "avg_latency_ms": 56.65,
+      "unique_potholes_tracked": 5
+    }
+  },
+  "precision_fp16_fp32": {
+    "FP32": {
+      "frames_tested": 100,
+      "inferred_frames": 100,
+      "total_time_sec": 6.2,
+      "effective_fps": 16.13,
+      "avg_latency_ms": 57.63,
+      "unique_potholes_tracked": 6
+    },
+    "FP16": {
+      "frames_tested": 100,
+      "inferred_frames": 100,
+      "total_time_sec": 6.67,
+      "effective_fps": 15.0,
+      "avg_latency_ms": 61.93,
+      "unique_potholes_tracked": 6
+    }
+  },
+  "roi_optimization": {
+    "Full_Frame": {
+      "frames_tested": 100,
+      "inferred_frames": 100,
+      "total_time_sec": 6.11,
+      "effective_fps": 16.37,
+      "avg_latency_ms": 56.63,
+      "unique_potholes_tracked": 6
+    },
+    "Road_ROI": {
+      "frames_tested": 100,
+      "inferred_frames": 100,
+      "total_time_sec": 5.74,
+      "effective_fps": 17.44,
+      "avg_latency_ms": 52.63,
+      "unique_potholes_tracked": 7
+    }
+  },
+  "frame_skipping": {
+    "skip_1": {
+      "frames_tested": 100,
+      "inferred_frames": 100,
+      "total_time_sec": 6.15,
+      "effective_fps": 16.25,
+      "avg_latency_ms": 56.81,
+      "unique_potholes_tracked": 6
+    },
+    "skip_2": {
+      "frames_tested": 100,
+      "inferred_frames": 51,
+      "total_time_sec": 3.47,
+      "effective_fps": 28.78,
+      "avg_latency_ms": 59.29,
+      "unique_potholes_tracked": 4
+    },
+    "skip_3": {
+      "frames_tested": 100,
+      "inferred_frames": 34,
+      "total_time_sec": 2.69,
+      "effective_fps": 37.22,
+      "avg_latency_ms": 64.26,
+      "unique_potholes_tracked": 3
+    }
+  },
+  "backends": {
+    "PyTorch_CUDA": {
+      "frames_tested": 100,
+      "inferred_frames": 100,
+      "total_time_sec": 6.15,
+      "effective_fps": 16.25,
+      "avg_latency_ms": 56.98,
+      "unique_potholes_tracked": 6
+    },
+    "ONNX_Runtime": {
+      "frames_tested": 100,
+      "inferred_frames": 100,
+      "total_time_sec": 55.26,
+      "effective_fps": 1.81,
+      "avg_latency_ms": 546.62,
+      "unique_potholes_tracked": 1046
+    }
+  }
+}

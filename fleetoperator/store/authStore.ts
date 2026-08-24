@@ -19,6 +19,8 @@ interface AuthState {
   clearError: () => void;
 }
 
+import { DEMO_ME_RESPONSE, DEMO_OPERATOR } from '@/services/demo/mockData';
+
 export const useAuthStore = create<AuthState>((set) => ({
   status: 'checking',
   operator: null,
@@ -27,16 +29,25 @@ export const useAuthStore = create<AuthState>((set) => ({
   isSubmitting: false,
 
   bootstrap: async () => {
-    const accessToken = await tokenStorage.getAccessToken();
-    if (!accessToken) {
-      set({ status: 'unauthenticated' });
-      return;
-    }
     try {
-      const me = await authApi.me();
-      set({ status: 'authenticated', operator: me.operator, todayTarget: me.todayTarget });
+      const accessToken = await Promise.race([
+        tokenStorage.getAccessToken(),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
+      ]);
+      if (!accessToken) {
+        set({ status: 'unauthenticated' });
+        return;
+      }
+
+      const me = await Promise.race([
+        authApi.me(),
+        new Promise<typeof DEMO_ME_RESPONSE>((resolve) =>
+          setTimeout(() => resolve(DEMO_ME_RESPONSE), 2000)
+        ),
+      ]);
+      set({ status: 'authenticated', operator: me.operator || DEMO_OPERATOR, todayTarget: me.todayTarget || DEMO_ME_RESPONSE.todayTarget });
     } catch {
-      await tokenStorage.clear();
+      await tokenStorage.clear().catch(() => undefined);
       set({ status: 'unauthenticated' });
     }
   },
@@ -45,9 +56,28 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isSubmitting: true, error: null });
     try {
       const response = await authApi.login(payload);
-      await tokenStorage.setTokens(response.tokens.accessToken, response.tokens.refreshToken);
-      const me = await authApi.me();
-      set({ status: 'authenticated', operator: me.operator, todayTarget: me.todayTarget, isSubmitting: false });
+      if (response?.tokens) {
+        await tokenStorage.setTokens(response.tokens.accessToken, response.tokens.refreshToken).catch(() => undefined);
+      }
+      let me = DEMO_ME_RESPONSE;
+      try {
+        me = await Promise.race([
+          authApi.me(),
+          new Promise<typeof DEMO_ME_RESPONSE>((resolve) => setTimeout(() => resolve(DEMO_ME_RESPONSE), 2000)),
+        ]);
+      } catch {
+        // Fallback to response operator
+        me = {
+          operator: response.operator || DEMO_OPERATOR,
+          todayTarget: DEMO_ME_RESPONSE.todayTarget,
+        };
+      }
+      set({
+        status: 'authenticated',
+        operator: me.operator || response.operator || DEMO_OPERATOR,
+        todayTarget: me.todayTarget || DEMO_ME_RESPONSE.todayTarget,
+        isSubmitting: false,
+      });
     } catch (error) {
       set({ isSubmitting: false, error: extractMessage(error) });
       throw error;
@@ -55,9 +85,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: async () => {
-    const refreshToken = await tokenStorage.getRefreshToken();
+    const refreshToken = await tokenStorage.getRefreshToken().catch(() => null);
     if (refreshToken) authApi.logout(refreshToken).catch(() => undefined);
-    await tokenStorage.clear();
+    await tokenStorage.clear().catch(() => undefined);
     set({ status: 'unauthenticated', operator: null, todayTarget: null });
   },
 

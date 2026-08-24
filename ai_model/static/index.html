@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JARVISS • AI Pothole Vision & Road Damage Suite</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app-background"></div>
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="brand-section">
+                <div class="logo-badge">
+                    <span class="logo-icon">🛣️</span>
+                </div>
+                <div class="title-wrap">
+                    <h1>JARVISS <span class="accent-text">Road Vision AI</span></h1>
+                    <p class="subtitle">Real-Time Pothole Segmentation & Road Damage Assessment</p>
+                </div>
+            </div>
+
+            <div class="system-status-pill">
+                <span class="status-dot"></span>
+                <span id="gpu-status-text">GPU: NVIDIA RTX 2050 (CUDA)</span>
+            </div>
+        </header>
+
+        <!-- Main Grid -->
+        <main class="main-grid">
+            <!-- Sidebar / Settings -->
+            <aside class="control-panel glass-card">
+                <h2>⚡ Inference Controls</h2>
+                <p class="panel-desc">Real-time parameters for the YOLOv8-seg model.</p>
+
+                <div class="control-group">
+                    <div class="label-row">
+                        <label for="conf-slider">Confidence Threshold</label>
+                        <span id="conf-val" class="badge">0.25</span>
+                    </div>
+                    <input type="range" id="conf-slider" min="0.10" max="0.90" step="0.05" value="0.25">
+                </div>
+
+                <div class="control-group">
+                    <div class="label-row">
+                        <label for="iou-slider">NMS IoU Threshold</label>
+                        <span id="iou-val" class="badge">0.50</span>
+                    </div>
+                    <input type="range" id="iou-slider" min="0.10" max="0.90" step="0.05" value="0.50">
+                </div>
+
+                <div class="control-group">
+                    <label for="imgsz-select">Input Resolution</label>
+                    <select id="imgsz-select" class="styled-select">
+                        <option value="480">480x480 (Ultra-Fast)</option>
+                        <option value="512">512x512 (Fast)</option>
+                        <option value="640" selected>640x640 (Balanced Default)</option>
+                        <option value="1280">1280x1280 (High Detail)</option>
+                    </select>
+                </div>
+
+                <div class="control-group toggle-group">
+                    <label class="toggle-label" for="roi-toggle">
+                        <span>Road ROI Optimization</span>
+                        <small>Focuses 40%-90% road plane</small>
+                    </label>
+                    <label class="switch">
+                        <input type="checkbox" id="roi-toggle">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+
+                <div class="sample-section">
+                    <h3>📁 Quick Test Samples</h3>
+                    <div class="sample-buttons">
+                        <button class="sample-btn" data-img="/output_preview_1.jpg">Sample 1</button>
+                        <button class="sample-btn" data-img="/output_preview_2.jpg">Sample 2</button>
+                        <button class="sample-btn" data-img="/output_preview_3.jpg">Sample 3</button>
+                    </div>
+                </div>
+
+                <div class="model-info-box">
+                    <div class="info-row">
+                        <span>Model:</span>
+                        <strong id="model-name-label">pothole_v2_final.pt</strong>
+                    </div>
+                    <div class="info-row">
+                        <span>Architecture:</span>
+                        <strong>YOLOv8-Seg (Fused)</strong>
+                    </div>
+                    <div class="info-row">
+                        <span>Precision:</span>
+                        <strong>FP16 Half</strong>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <section class="content-area">
+                <!-- Dropzone -->
+                <div class="dropzone glass-card" id="dropzone">
+                    <input type="file" id="file-input" accept="image/*" style="display: none;">
+                    <div class="dropzone-inner" id="dropzone-prompt">
+                        <div class="upload-icon">📤</div>
+                        <h3>Drag & Drop Road Image Here</h3>
+                        <p>or <button class="browse-btn" id="browse-btn">Browse Files</button></p>
+                        <span class="file-hint">Supports JPG, PNG, WEBP</span>
+                    </div>
+                    <div id="loading-spinner" class="loading-wrap" style="display: none;">
+                        <div class="spinner"></div>
+                        <p>Running YOLOv8 Segmentation on RTX 2050 GPU...</p>
+                    </div>
+                </div>
+
+                <!-- Live Metrics Summary Bar -->
+                <div class="metrics-grid" id="metrics-panel">
+                    <div class="metric-card glass-card">
+                        <span class="metric-title">ROAD DAMAGE SEVERITY</span>
+                        <div class="severity-badge" id="severity-badge" style="color: #10b981; border-color: #10b981;">
+                            <span class="pulse-dot"></span>
+                            <span id="severity-text">AWAITING INPUT</span>
+                        </div>
+                        <span class="metric-sub" id="severity-desc">Upload road image to analyze</span>
+                    </div>
+
+                    <div class="metric-card glass-card">
+                        <span class="metric-title">POTHOLES DETECTED</span>
+                        <div class="metric-value" id="potholes-count">-</div>
+                        <span class="metric-sub">Count in current frame</span>
+                    </div>
+
+                    <div class="metric-card glass-card">
+                        <span class="metric-title">SURFACE DAMAGE RATIO</span>
+                        <div class="metric-value" id="damage-ratio">0.00%</div>
+                        <span class="metric-sub">Damaged pixels / Road area</span>
+                    </div>
+
+                    <div class="metric-card glass-card">
+                        <span class="metric-title">GPU INFERENCE SPEED</span>
+                        <div class="metric-value" id="speed-fps">- ms</div>
+                        <span class="metric-sub" id="fps-label">FPS estimate</span>
+                    </div>
+                </div>
+
+                <!-- Visual Output Viewer -->
+                <div class="viewer-section glass-card" id="viewer-section" style="display: none;">
+                    <div class="viewer-header">
+                        <div class="tab-buttons">
+                            <button class="tab-btn active" data-view="annotated">Annotated Detection</button>
+                            <button class="tab-btn" data-view="mask">Segmentation Mask</button>
+                            <button class="tab-btn" data-view="raw">Original Road Image</button>
+                        </div>
+                        <button class="action-btn" id="download-json-btn">📥 Export Audit Report</button>
+                    </div>
+
+                    <div class="image-stage">
+                        <img id="main-display-img" src="" alt="Pothole AI Result">
+                    </div>
+
+                    <!-- Pothole Bounding Boxes & Confidence Table -->
+                    <div class="boxes-table-wrap" id="table-wrap">
+                        <h4>🔍 Detected Pothole Instances</h4>
+                        <table class="styled-table" id="boxes-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Confidence</th>
+                                    <th>Bounding Box (X1, Y1, X2, Y2)</th>
+                                    <th>Dimensions (W x H)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="boxes-tbody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

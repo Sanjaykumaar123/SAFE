@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useCameraPermissions } from 'expo-camera';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
@@ -19,10 +20,10 @@ import { useMonitoringStore } from '@/store/monitoringStore';
  * STOP (§04).
  */
 export default function StartConfirmScreen() {
+  const insets = useSafeAreaInsets();
   const operator = useAuthStore((s) => s.operator);
   const todayTarget = useAuthStore((s) => s.todayTarget);
   const deviceHealth = useMonitoringStore((s) => s.deviceHealth);
-  const canStart = useMonitoringStore((s) => s.canStart);
   const start = useMonitoringStore((s) => s.start);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [starting, setStarting] = useState(false);
@@ -51,8 +52,10 @@ export default function StartConfirmScreen() {
     }
   };
 
+  const topPadding = Math.max(insets.top, 24) + spacing.md;
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={[styles.container, { paddingTop: topPadding }]}>
       <Text style={styles.title}>Ready to collect road intelligence?</Text>
 
       <Card style={styles.detailsCard}>
@@ -73,7 +76,7 @@ export default function StartConfirmScreen() {
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-      <Button label="START MONITORING" size="lg" loading={starting} disabled={!canStart() || !operator.vehicle} onPress={handleStart} />
+      <Button label="START MONITORING" size="lg" loading={starting} disabled={!operator.vehicle || starting} onPress={handleStart} />
       <Button label="Cancel" variant="ghost" onPress={() => router.back()} />
     </ScrollView>
   );

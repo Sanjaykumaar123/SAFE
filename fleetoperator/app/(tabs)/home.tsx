@@ -1,6 +1,8 @@
 import { router } from 'expo-router';
 import { Bell } from 'lucide-react-native';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useCameraPermissions } from 'expo-camera';
 
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
@@ -11,6 +13,7 @@ import { colors, radius, spacing, typography } from '@/constants/theme';
 import { useDeviceHealth } from '@/features/deviceHealth/useDeviceHealth';
 import { useEarnings } from '@/features/earnings/useEarnings';
 import { useNotifications } from '@/features/notifications/useNotifications';
+import { locationService } from '@/services/location/locationService';
 import { toApiError } from '@/services/api/client';
 import { useAuthStore } from '@/store/authStore';
 import { useMonitoringStore } from '@/store/monitoringStore';
@@ -19,10 +22,11 @@ import { useMonitoringStore } from '@/store/monitoringStore';
  * come from the backend (`GET /fleet/me`, `GET /fleet/earnings`) — never a
  * hardcoded demo figure. */
 export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
   const operator = useAuthStore((s) => s.operator);
   const todayTarget = useAuthStore((s) => s.todayTarget);
   const deviceHealth = useMonitoringStore((s) => s.deviceHealth);
-  const canStart = useMonitoringStore((s) => s.canStart);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   useDeviceHealth();
 
   const earnings = useEarnings();
@@ -35,8 +39,18 @@ export default function HomeScreen() {
   const progress = todayTarget.targetKm > 0 ? Math.min(1, todayTarget.completedKm / todayTarget.targetKm) : 0;
   const unreadCount = notifications.data?.unreadCount ?? 0;
 
+  const handleStartPress = async () => {
+    if (!cameraPermission?.granted) {
+      await requestCameraPermission();
+    }
+    await locationService.requestPermission();
+    router.push('/monitoring/start-confirm');
+  };
+
+  const topPadding = Math.max(insets.top, 24) + spacing.md;
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={[styles.container, { paddingTop: topPadding }]}>
       <View style={styles.topBar}>
         <View>
           <Text style={styles.greeting}>Good day, {operator.fullName.split(' ')[0]}</Text>
@@ -103,8 +117,8 @@ export default function HomeScreen() {
       <Button
         label="START MONITORING"
         size="lg"
-        onPress={() => router.push('/monitoring/start-confirm')}
-        disabled={!operator.vehicle || !canStart()}
+        onPress={handleStartPress}
+        disabled={!operator.vehicle}
         style={styles.startButton}
       />
       {!operator.vehicle ? <ErrorState message="No vehicle is currently assigned to your account. Contact your fleet admin." /> : null}

@@ -1,0 +1,22 @@
+# Ignore large media output files
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.gif
+
+# Python artifacts
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Training runs cache
+runs/
+yolo26n.pt
+
+# Build and Binary Tools
+*.apk
+tools/
+uploads/*
+!uploads/.gitkeep
+screen_debug.png

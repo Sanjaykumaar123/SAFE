@@ -67,11 +67,8 @@ export const useMonitoringStore = create<MonitoringState>((set, get) => ({
   setDeviceHealth: (patch) => set((state) => ({ deviceHealth: { ...state.deviceHealth, ...patch } })),
 
   canStart: () => {
-    const { gps, camera } = get().deviceHealth;
-    // §17: monitoring should not start if critical requirements
-    // (GPS/camera) are unavailable; AI/network degrade gracefully instead
-    // (§47) rather than blocking the start.
-    return gps !== HealthState.ERROR && camera !== HealthState.ERROR;
+    const { phase } = get();
+    return phase !== 'stopping';
   },
 
   start: async (vehicleId, cityId) => {

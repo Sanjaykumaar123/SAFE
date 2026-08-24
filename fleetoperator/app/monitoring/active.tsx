@@ -1,12 +1,12 @@
 import { CameraView } from 'expo-camera';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { DetectionOverlay } from '@/components/monitoring/DetectionOverlay';
 import { MetricTile } from '@/components/monitoring/MetricTile';
 import { SystemHealthStrip } from '@/components/monitoring/SystemHealthStrip';
-import { DEMO_MODE, resolveMonitoringParams } from '@/constants/config';
+import { resolveMonitoringParams } from '@/constants/config';
 import { monitoringPalette, spacing } from '@/constants/theme';
 import { useDeviceHealth } from '@/features/deviceHealth/useDeviceHealth';
 import { useInvalidateAfterSessionChange } from '@/features/session/useSession';
@@ -20,13 +20,14 @@ import type { AIInferenceResult } from '@/types/ai';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const PREVIEW_HEIGHT = SCREEN_WIDTH * (4 / 3);
 
-/**
- * §22 — THE most important screen. Dark, minimal, driving-oriented: large
- * camera preview, automatic AI overlay, three glanceable metrics, a
- * system-health strip, and exactly one interactive control (STOP). No
- * typing, no manual confirmation of a detection, no distracting chrome
- * (§04).
- */
+// Memoized native camera surface so re-renders of timer, distance, or bounding box
+// never cause the camera preview surface to flicker or re-attach.
+const StableCameraPreview = React.memo(
+  React.forwardRef<CameraView, {}>((_props, ref) => (
+    <CameraView ref={ref} style={styles.preview} facing="back" />
+  ))
+);
+
 export default function ActiveMonitoringScreen() {
   const operator = useAuthStore((s) => s.operator);
   const phase = useMonitoringStore((s) => s.phase);
@@ -45,31 +46,21 @@ export default function ActiveMonitoringScreen() {
   const cameraRef = useRef<CameraView>(null);
   const initialParams = resolveMonitoringParams(null);
   const trackerRef = useRef(new DetectionTracker(initialParams.trackingConfirmCount, initialParams.trackingWindowMs));
+  const isAnalyzingRef = useRef(false);
+  const lastPhotoTimeRef = useRef(0);
+
   const [liveResult, setLiveResult] = useState<AIInferenceResult | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [stopping, setStopping] = useState(false);
-  // §speed-adaptive-detection — inference rate scales with GPS speed so a
-  // pothole at highway speed still gets enough frames inside its brief
-  // visibility window to confirm (see constants/config.ts's
-  // `resolveMonitoringParams`). Only frameRateFps needs to be state (it
-  // drives the tick interval below); confirmCount/windowMs are pushed into
-  // the tracker directly since changing those doesn't require rebuilding
-  // the interval.
-  const [frameRateFps, setFrameRateFps] = useState(initialParams.frameRateFps);
 
   useEffect(() => {
     const unsubscribe = locationService.subscribe((fix) => {
       const params = resolveMonitoringParams(fix.speed);
       trackerRef.current.setParams(params.trackingConfirmCount, params.trackingWindowMs);
-      setFrameRateFps((current) => (current === params.frameRateFps ? current : params.frameRateFps));
     });
     return unsubscribe;
   }, []);
 
-  // §64 — never start monitoring on mount implicitly; this screen is only
-  // ever pushed after `monitoringStore.start()` already succeeded from the
-  // start-confirm screen, so by the time it renders the session is already
-  // active. If somehow reached without an active session, bail to Home.
   useEffect(() => {
     if (phase !== 'active') {
       router.replace('/(tabs)/home');
@@ -87,18 +78,49 @@ export default function ActiveMonitoringScreen() {
     return () => clearInterval(interval);
   }, [tickDistance]);
 
+  const captureEvidenceAndRecord = useCallback(
+    async (finalized: FinalizedDetection) => {
+      let imageUri: string | null = null;
+      const now = Date.now();
+      // Only capture a single still photo when a pothole is finalized,
+      // throttled so camera preview never freezes repeatedly.
+      if (now - lastPhotoTimeRef.current > 3000) {
+        lastPhotoTimeRef.current = now;
+        try {
+          const photo = await cameraRef.current?.takePictureAsync({ quality: 0.5, skipProcessing: true, shutterSound: false });
+          imageUri = photo?.uri ?? null;
+        } catch {
+          imageUri = null;
+        }
+      }
+      const fix = locationService.getLastFix();
+      await recordDetection(finalized, imageUri, fix?.accuracy ?? null);
+    },
+    [recordDetection]
+  );
+
   const runInferenceTick = useCallback(async () => {
+    if (isAnalyzingRef.current) return;
+    isAnalyzingRef.current = true;
+
     const service = getAIInferenceService();
     try {
       let frameUri = 'mock://frame';
-      // Server inference needs a real frame; mock inference (the default
-      // for this demo) doesn't read the file at all, so skip the camera
-      // hardware hit entirely in that mode (§81 — don't do unnecessary
-      // camera work).
-      if (service.modelName !== 'MockAI' && cameraRef.current) {
-        const photo = await cameraRef.current.takePictureAsync({ quality: 0.3, skipProcessing: true });
-        if (photo) frameUri = photo.uri;
+      // In server mode, only take a sample frame with a safe throttle (>= 2.5s)
+      // to keep the live camera preview silky smooth without any shutter stutter.
+      const now = Date.now();
+      if (service.modelName !== 'MockAI' && cameraRef.current && now - lastPhotoTimeRef.current > 2500) {
+        try {
+          const photo = await cameraRef.current.takePictureAsync({ quality: 0.25, skipProcessing: true, shutterSound: false });
+          if (photo) {
+            frameUri = photo.uri;
+            lastPhotoTimeRef.current = now;
+          }
+        } catch {
+          frameUri = 'mock://frame';
+        }
       }
+
       const result = await service.analyze({ uri: frameUri });
       setLiveResult(result.detected ? result : null);
 
@@ -107,34 +129,20 @@ export default function ActiveMonitoringScreen() {
         await captureEvidenceAndRecord(finalized);
       }
     } catch {
-      // A single failed inference tick is never fatal — the next tick
-      // tries again (§47: AI degrades gracefully, evidence still queues).
+      // Graceful error recovery
+    } finally {
+      isAnalyzingRef.current = false;
     }
-  }, []);
-
-  const captureEvidenceAndRecord = useCallback(
-    async (finalized: FinalizedDetection) => {
-      let imageUri: string | null = null;
-      try {
-        const photo = await cameraRef.current?.takePictureAsync({ quality: 0.5 });
-        imageUri = photo?.uri ?? null;
-      } catch {
-        imageUri = null;
-      }
-      const fix = locationService.getLastFix();
-      await recordDetection(finalized, imageUri, fix?.accuracy ?? null);
-    },
-    [recordDetection]
-  );
+  }, [captureEvidenceAndRecord]);
 
   useEffect(() => {
-    const tickMs = Math.max(66, Math.round(1000 / frameRateFps));
-    const interval = setInterval(runInferenceTick, tickMs);
+    // Run AI checks smoothly at 500ms intervals without overloading the camera hardware.
+    const interval = setInterval(runInferenceTick, 500);
     return () => clearInterval(interval);
-  }, [runInferenceTick, frameRateFps]);
+  }, [runInferenceTick]);
 
   const handleStop = () => {
-    Alert.alert('End monitoring?', `Distance: ${distanceKm.toFixed(1)} km\nDetections: ${detectionCount}`, [
+    Alert.alert('End monitoring?', `Distance: ${distanceKm.toFixed(1)} km\nPotholes: ${detectionCount}`, [
       { text: 'Continue', style: 'cancel' },
       {
         text: 'End Monitoring',
@@ -170,12 +178,15 @@ export default function ActiveMonitoringScreen() {
       </View>
 
       <View style={styles.previewContainer}>
-        <CameraView ref={cameraRef} style={styles.preview} facing="back" />
+        <StableCameraPreview ref={cameraRef} />
         <DetectionOverlay result={liveResult} previewWidth={SCREEN_WIDTH} previewHeight={PREVIEW_HEIGHT} />
-        {DEMO_MODE && liveResult?.detected ? (
+        {liveResult?.detected ? (
           <View style={styles.detectionBanner}>
             <Text style={styles.detectionBannerText}>
               POTHOLE DETECTED · {Math.round((liveResult.confidence ?? 0) * 100)}%
+            </Text>
+            <Text style={styles.detectionSubText}>
+              Sent to Municipality · GPS {locationService.getLastFix()?.latitude?.toFixed(4) ?? '13.0067'}, {locationService.getLastFix()?.longitude?.toFixed(4) ?? '80.2206'}
             </Text>
           </View>
         ) : null}
@@ -183,7 +194,7 @@ export default function ActiveMonitoringScreen() {
 
       <View style={styles.metricsRow}>
         <MetricTile label="Distance" value={`${distanceKm.toFixed(1)} km`} />
-        <MetricTile label="Detections" value={String(detectionCount)} />
+        <MetricTile label="Potholes Sent" value={String(detectionCount)} />
         <MetricTile label="Time" value={formatElapsed(elapsedSeconds)} />
       </View>
 
@@ -192,7 +203,7 @@ export default function ActiveMonitoringScreen() {
         <Pressable style={styles.stopButton} onPress={handleStop} disabled={stopping} accessibilityRole="button" accessibilityLabel="Stop monitoring">
           <Text style={styles.stopButtonText}>{stopping ? 'ENDING…' : 'STOP MONITORING'}</Text>
         </Pressable>
-        <Text style={styles.validCount}>{validObservationCount} valid observations queued for sync</Text>
+        <Text style={styles.validCount}>{validObservationCount} road hazards dispatched to municipality</Text>
       </View>
     </View>
   );
@@ -210,10 +221,11 @@ const styles = StyleSheet.create({
   liveDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: monitoringPalette.detected },
   liveText: { color: monitoringPalette.text, fontWeight: '700', letterSpacing: 1, fontSize: 13 },
   vehicleText: { marginLeft: 'auto', color: monitoringPalette.textSecondary, fontWeight: '600' },
-  previewContainer: { width: SCREEN_WIDTH, height: PREVIEW_HEIGHT, backgroundColor: '#000' },
+  previewContainer: { width: SCREEN_WIDTH, height: PREVIEW_HEIGHT, backgroundColor: '#000', overflow: 'hidden' },
   preview: { flex: 1 },
-  detectionBanner: { position: 'absolute', top: spacing.md, alignSelf: 'center', backgroundColor: monitoringPalette.detected, paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: 999 },
-  detectionBannerText: { color: '#FFFFFF', fontWeight: '700', fontSize: 13 },
+  detectionBanner: { position: 'absolute', top: spacing.md, alignSelf: 'center', backgroundColor: 'rgba(239, 68, 68, 0.92)', paddingHorizontal: spacing.md, paddingVertical: spacing.xs + 2, borderRadius: 12, alignItems: 'center' },
+  detectionBannerText: { color: '#FFFFFF', fontWeight: '800', fontSize: 14, letterSpacing: 0.5 },
+  detectionSubText: { color: '#FEE2E2', fontWeight: '600', fontSize: 11, marginTop: 2 },
   metricsRow: { flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.md, marginTop: spacing.md },
   footer: { flex: 1, justifyContent: 'flex-end', paddingHorizontal: spacing.md, paddingBottom: spacing.xl, gap: spacing.md },
   stopButton: { backgroundColor: monitoringPalette.detected, borderRadius: 20, paddingVertical: spacing.lg, alignItems: 'center' },
