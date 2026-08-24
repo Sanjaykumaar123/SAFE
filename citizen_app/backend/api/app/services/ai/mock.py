@@ -46,7 +46,7 @@ class MockAIAnalysisService(AIAnalysisService):
     async def analyze(self, *, image_bytes: bytes, filename: str) -> AIAnalysisResult:
         key = (filename or "").lower()
         seed = _stable_hash(image_bytes if image_bytes else filename.encode("utf-8"))
-        processing_time_ms = 1200 + (seed % 900)  # 1200-2100ms, deterministic
+        processing_time_ms = 80 + (seed % 40)  # Ultra-fast 80-120ms response
 
         if any(marker in key for marker in ("demo-fail", "corrupt", "fail")):
             return AIAnalysisResult(
@@ -79,57 +79,17 @@ class MockAIAnalysisService(AIAnalysisService):
                 message="Low confidence detection — please confirm before submitting.",
             )
 
-        if any(marker in key for marker in ("demo-pothole", "pothole")):
-            confidence = round(0.9 + (seed % 8) / 100, 2)
-            return AIAnalysisResult(
-                detected=True,
-                hazard_type=HazardType.POTHOLE,
-                confidence=confidence,
-                severity=_severity_for_confidence(confidence),
-                bounding_box=_bounding_box(seed),
-                processing_time_ms=processing_time_ms,
-                model_version=MODEL_VERSION,
-            )
-
-        # No filename hint — deterministic bucket by hash.
-        bucket = seed % 100
-        if bucket < 55:
-            confidence = round(0.75 + (seed % 22) / 100, 2)
-            return AIAnalysisResult(
-                detected=True,
-                hazard_type=HazardType.POTHOLE,
-                confidence=confidence,
-                severity=_severity_for_confidence(confidence),
-                bounding_box=_bounding_box(seed),
-                processing_time_ms=processing_time_ms,
-                model_version=MODEL_VERSION,
-            )
-        if bucket < 80:
-            return AIAnalysisResult(
-                detected=False,
-                confidence=round(0.05 + (seed % 15) / 100, 2),
-                processing_time_ms=processing_time_ms,
-                model_version=MODEL_VERSION,
-                message=NO_HAZARD_MESSAGE,
-            )
-        if bucket < 94:
-            confidence = round(0.45 + (seed % 20) / 100, 2)
-            return AIAnalysisResult(
-                detected=True,
-                hazard_type=HazardType.POTHOLE,
-                confidence=confidence,
-                severity=Severity.LOW,
-                bounding_box=_bounding_box(seed),
-                processing_time_ms=processing_time_ms,
-                model_version=MODEL_VERSION,
-                message="Low confidence detection — please confirm before submitting.",
-            )
+        # Default captured photos: High-confidence Pothole Detection for smooth workflow
+        confidence = round(0.88 + (seed % 10) / 100, 2)
         return AIAnalysisResult(
-            detected=False,
-            confidence=0.0,
+            detected=True,
+            hazard_type=HazardType.POTHOLE,
+            confidence=confidence,
+            severity=_severity_for_confidence(confidence),
+            bounding_box=_bounding_box(seed),
             processing_time_ms=processing_time_ms,
             model_version=MODEL_VERSION,
-            message=FAILED_MESSAGE,
+            message="Road hazard verified by SafePath AI.",
         )
 
 

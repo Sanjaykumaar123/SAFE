@@ -170,7 +170,7 @@ export class YOLOAIAnalysisService implements IAIAnalysisService {
           const formData = new FormData();
           formData.append('image', { uri: imageUri, name: 'road.jpg', type: 'image/jpeg' } as unknown as Blob);
           formData.append('file', { uri: imageUri, name: 'road.jpg', type: 'image/jpeg' } as unknown as Blob);
-          const { data } = await apiClient.post<DirectDetectResponse>('/api/predict/image', formData, {
+          const { data } = await apiClient.post<DirectDetectResponse>('/ai/analyze', formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
           });
           resData = data;
@@ -245,6 +245,12 @@ export class YOLOAIAnalysisService implements IAIAnalysisService {
           height: 0.40,
           confidence,
           label: `POTHOLE ${Math.round(confidence * 100)}%`,
+        };
+      } else if (!primaryBox.confidence || !primaryBox.label) {
+        primaryBox = {
+          ...primaryBox,
+          confidence: primaryBox.confidence ?? confidence,
+          label: primaryBox.label ?? `POTHOLE ${Math.round(confidence * 100)}%`,
         };
       }
 

@@ -59,8 +59,6 @@ async def ai_health() -> dict[str, Any]:
 @router.post("/analyze", response_model=AIAnalysisResult)
 async def analyze_image(
     request: Request,
-    image: Optional[UploadFile] = File(None),
-    payload: Optional[Base64InferenceRequest] = Body(None),
     current_user: Any = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db),
 ) -> AIAnalysisResult:
@@ -68,10 +66,17 @@ async def analyze_image(
     filename: str = "capture.jpg"
     content_type: str = "image/jpeg"
 
-    if isinstance(image, UploadFile):
-        file_bytes = await image.read()
-        filename = image.filename or filename
-        content_type = image.content_type or content_type
+    content_type_header = request.headers.get("content-type", "")
+    if "multipart/form-data" in content_type_header:
+        try:
+            form = await request.form()
+            image_obj = form.get("image") or form.get("file")
+            if isinstance(image_obj, UploadFile):
+                file_bytes = await image_obj.read()
+                filename = image_obj.filename or filename
+                content_type = image_obj.content_type or content_type
+        except Exception:
+            pass
 
     if not file_bytes:
         try:
@@ -84,12 +89,6 @@ async def analyze_image(
                     file_bytes = base64.b64decode(b64_str)
         except Exception:
             pass
-
-    if not file_bytes and isinstance(payload, Base64InferenceRequest) and payload.imageBase64:
-        raw_b64 = payload.imageBase64
-        if "," in raw_b64:
-            raw_b64 = raw_b64.split(",", 1)[1]
-        file_bytes = base64.b64decode(raw_b64)
 
     if not file_bytes:
         raise HTTPException(
@@ -133,15 +132,20 @@ async def analyze_image(
 @router.post("/detect", response_model=AIAnalysisResult)
 async def detect_base64_or_form(
     request: Request,
-    image: Optional[UploadFile] = File(None),
-    payload: Optional[Base64InferenceRequest] = Body(None),
 ) -> AIAnalysisResult:
     file_bytes: bytes = b""
     filename: str = "frame.jpg"
 
-    if isinstance(image, UploadFile):
-        file_bytes = await image.read()
-        filename = image.filename or filename
+    content_type_header = request.headers.get("content-type", "")
+    if "multipart/form-data" in content_type_header:
+        try:
+            form = await request.form()
+            image_obj = form.get("image") or form.get("file")
+            if isinstance(image_obj, UploadFile):
+                file_bytes = await image_obj.read()
+                filename = image_obj.filename or filename
+        except Exception:
+            pass
 
     if not file_bytes:
         try:
@@ -154,12 +158,6 @@ async def detect_base64_or_form(
                     file_bytes = base64.b64decode(b64_str)
         except Exception:
             pass
-
-    if not file_bytes and isinstance(payload, Base64InferenceRequest) and payload.imageBase64:
-        raw_b64 = payload.imageBase64
-        if "," in raw_b64:
-            raw_b64 = raw_b64.split(",", 1)[1]
-        file_bytes = base64.b64decode(raw_b64)
 
     if not file_bytes:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Missing image payload.")
