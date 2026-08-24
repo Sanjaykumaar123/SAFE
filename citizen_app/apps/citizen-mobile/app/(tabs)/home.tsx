@@ -13,6 +13,7 @@ import { HazardMapPreview } from '@/components/map/HazardMapPreview';
 import { colors, radius, shadow, spacing, typography } from '@/constants/theme';
 import { useHomeDashboard } from '@/features/hazards/useHomeDashboard';
 import { useOneShotLocation } from '@/hooks/useOneShotLocation';
+import { tokenStorage } from '@/services/auth/tokenStorage';
 import { useAuthStore } from '@/store/authStore';
 import { toApiError } from '@/services/api/queryClient';
 import type { Hazard } from '@/types';
@@ -55,7 +56,13 @@ export default function HomeScreen() {
       {isLocating || home.isPending ? (
         <LoadingState label="Loading road conditions…" />
       ) : home.isError ? (
-        <ErrorState message={toApiError(home.error).message} onRetry={() => home.refetch()} />
+        <ErrorState
+          message={toApiError(home.error).message}
+          onRetry={async () => {
+            await tokenStorage.clear();
+            home.refetch();
+          }}
+        />
       ) : (
         <ScrollView
           contentContainerStyle={styles.scrollContent}

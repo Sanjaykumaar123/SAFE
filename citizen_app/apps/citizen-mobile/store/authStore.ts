@@ -79,7 +79,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ status: 'guest', user: null });
   },
 
-  continueAsGuest: () => set({ status: 'guest', user: null }),
+  continueAsGuest: async () => {
+    await tokenStorage.clear();
+    set({ status: 'guest', user: null });
+  },
 
   clearError: () => set({ error: null }),
 }));
@@ -93,7 +96,8 @@ function extractMessage(error: unknown): string {
 }
 
 // Wire the API client's 401-after-refresh-failure signal to a real logout
-// so an expired session always drops the user back to the login screen.
+// so an expired session always drops the user back to the login screen and clears stale tokens.
 registerSessionExpiredHandler(() => {
+  tokenStorage.clear().catch(() => undefined);
   useAuthStore.setState({ status: 'guest', user: null });
 });

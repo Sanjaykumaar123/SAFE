@@ -33,8 +33,9 @@ export default function LoginScreen() {
     }
   }
 
-  function handleGuest() {
+  async function handleGuest() {
     enableGuestMode();
+    await useAuthStore.getState().continueAsGuest();
     router.replace('/(tabs)/home');
   }
 
