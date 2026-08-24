@@ -27,10 +27,21 @@ export const locationService = {
   /** One-shot current position — never `watchPositionAsync` for continuous
    * tracking (section 57). */
   async getCurrentLocation(): Promise<Coordinates | null> {
-    const status = await this.getPermissionStatus();
-    if (status !== 'granted') return null;
-    const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-    return { latitude: position.coords.latitude, longitude: position.coords.longitude };
+    try {
+      const status = await this.getPermissionStatus();
+      if (status !== 'granted') return null;
+      const lastKnown = await Location.getLastKnownPositionAsync().catch(() => null);
+      if (lastKnown) {
+        return { latitude: lastKnown.coords.latitude, longitude: lastKnown.coords.longitude };
+      }
+      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low }).catch(() => null);
+      if (position) {
+        return { latitude: position.coords.latitude, longitude: position.coords.longitude };
+      }
+      return null;
+    } catch {
+      return null;
+    }
   },
 
   async reverseGeocode(coords: Coordinates): Promise<string | null> {

@@ -34,7 +34,7 @@ export default function ProfileScreen() {
           <Text style={styles.label}>Admin ID</Text>
           <Text style={styles.value}>{admin.adminId}</Text>
           <Text style={styles.label}>Access scope</Text>
-          <Text style={styles.value}>{admin.accessibleCityIds === 'ALL' ? 'All cities' : `${admin.accessibleCityIds.length} cities`}</Text>
+          <Text style={styles.value}>{Array.isArray(admin.accessibleCityIds) ? `${admin.accessibleCityIds.length} cities` : 'All cities'}</Text>
           {admin.lastLoginAt ? (
             <>
               <Text style={styles.label}>Last login</Text>
@@ -43,9 +43,9 @@ export default function ProfileScreen() {
           ) : null}
         </Card>
 
-        <Text style={styles.sectionLabel}>PERMISSIONS ({admin.permissions.length})</Text>
+        <Text style={styles.sectionLabel}>PERMISSIONS ({(admin.permissions ?? []).length})</Text>
         <View style={styles.permissionsWrap}>
-          {admin.permissions.map((p) => (
+          {(admin.permissions ?? []).map((p) => (
             <View key={p} style={styles.permissionChip}>
               <Text style={styles.permissionText}>{p.replace(/_/g, ' ')}</Text>
             </View>

@@ -79,7 +79,7 @@ export default function LocationSearchScreen() {
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={query.trim() ? <Text style={styles.emptyText}>No matches. Try a nearby city or a PIN code.</Text> : null}
           renderItem={({ item }) => {
-            const Icon = TYPE_ICON[item.type];
+            const Icon = TYPE_ICON[item.type] || MapPin;
             return (
               <TouchableOpacity style={styles.resultRow} onPress={() => onSelect(item)}>
                 <View style={styles.resultIcon}>

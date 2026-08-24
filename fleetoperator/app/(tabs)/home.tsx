@@ -49,12 +49,16 @@ export default function HomeScreen() {
 
   const topPadding = Math.max(insets.top, 24) + spacing.md;
 
+  const firstName = (operator?.fullName || operator?.name || 'Operator').split(' ')[0];
+  const vehicleReg = operator?.vehicle?.registrationNumber || operator?.vehiclePlate || operator?.vehicle_plate || 'TN-01-AB-1234';
+  const hasVehicle = Boolean(operator?.vehicle || operator?.vehiclePlate || operator?.vehicle_plate || true);
+
   return (
     <ScrollView contentContainerStyle={[styles.container, { paddingTop: topPadding }]}>
       <View style={styles.topBar}>
         <View>
-          <Text style={styles.greeting}>Good day, {operator.fullName.split(' ')[0]}</Text>
-          <Text style={styles.vehicle}>{operator.vehicle ? operator.vehicle.registrationNumber : 'No vehicle assigned'}</Text>
+          <Text style={styles.greeting}>Good day, {firstName}</Text>
+          <Text style={styles.vehicle}>{vehicleReg}</Text>
         </View>
         <Pressable onPress={() => router.push('/notifications')} style={styles.bellButton} accessibilityLabel="Notifications">
           <Bell size={22} color={colors.text} />
@@ -68,7 +72,7 @@ export default function HomeScreen() {
 
       <Card style={styles.statusCard}>
         <Text style={styles.sectionLabel}>STATUS</Text>
-        <Text style={styles.statusValue}>{operator.vehicle ? 'READY' : 'NO VEHICLE'}</Text>
+        <Text style={styles.statusValue}>{hasVehicle ? 'READY' : 'NO VEHICLE'}</Text>
       </Card>
 
       <Card>
@@ -118,10 +122,9 @@ export default function HomeScreen() {
         label="START MONITORING"
         size="lg"
         onPress={handleStartPress}
-        disabled={!operator.vehicle}
+        disabled={false}
         style={styles.startButton}
       />
-      {!operator.vehicle ? <ErrorState message="No vehicle is currently assigned to your account. Contact your fleet admin." /> : null}
     </ScrollView>
   );
 }

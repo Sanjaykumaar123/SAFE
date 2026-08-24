@@ -52,7 +52,7 @@ export default function ResultScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.imageWrap}>
           <Image source={{ uri: media.uri }} style={styles.image} />
-          {isConfidentDetection && aiResult?.boundingBox ? <BoundingBoxOverlay box={aiResult.boundingBox} /> : null}
+          {isConfidentDetection ? <BoundingBoxOverlay box={aiResult?.boundingBox} boxes={aiResult?.boundingBoxes} /> : null}
         </View>
 
         {isFailed && (

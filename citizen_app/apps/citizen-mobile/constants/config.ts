@@ -1,9 +1,29 @@
+import Constants from 'expo-constants';
+
+function getResolvedApiUrl(): string {
+  try {
+    const envUrl = process.env.EXPO_PUBLIC_API_URL;
+    if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+      return envUrl;
+    }
+    const hostUri = Constants.expoConfig?.hostUri || Constants.manifest2?.extra?.expoGo?.debuggerHost || (Constants as any)?.manifest?.debuggerHost;
+    if (hostUri) {
+      const hostIp = hostUri.split(':')[0];
+      if (hostIp) {
+        return `http://${hostIp}:8000/api`;
+      }
+    }
+    return envUrl ?? 'http://10.0.2.2:8000/api';
+  } catch {
+    return process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:8000/api';
+  }
+}
+
 /** Centralized environment/config reads — nothing else touches
  * `process.env.EXPO_PUBLIC_*` directly (section 40/54). */
-export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:8000/api';
-export const AI_PROVIDER = (process.env.EXPO_PUBLIC_AI_PROVIDER ?? 'mock') as 'mock' | 'yolov8';
-export const DEMO_MODE = process.env.EXPO_PUBLIC_DEMO_MODE === 'true';
-export const MAP_KEY = process.env.EXPO_PUBLIC_MAP_KEY ?? '';
+export const API_URL = getResolvedApiUrl();
+export const AI_PROVIDER = (process.env.EXPO_PUBLIC_AI_PROVIDER ?? 'yolov8') as 'mock' | 'yolov8';
+export const DEMO_MODE = process.env.EXPO_PUBLIC_DEMO_MODE !== 'false';
 
 /** OSRM-compatible routing server used by the Safe Route feature
  * (`services/routing/osrmApi.ts`). Defaults to the public OSRM demo
@@ -21,3 +41,4 @@ export const REQUEST_TIMEOUT_MS = 15000;
  * keeps the map centered on `DEFAULT_CITY` instead of the null-island
  * (0,0) ocean coordinate. */
 export const DEFAULT_MAP_CENTER = { latitude: 13.0827, longitude: 80.2707 };
+

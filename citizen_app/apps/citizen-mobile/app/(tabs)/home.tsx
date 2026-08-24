@@ -68,9 +68,9 @@ export default function HomeScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>ROAD STATUS NEAR YOU</Text>
             <View style={styles.statsRow}>
-              <StatCard label="Hazards" value={home.data?.stats.nearbyCount ?? 0} />
-              <StatCard label="Critical" value={home.data?.stats.criticalCount ?? 0} tone="critical" />
-              <StatCard label="Warnings" value={home.data?.stats.warningCount ?? 0} tone="warning" />
+              <StatCard label="Hazards" value={home.data?.stats?.nearbyCount ?? 0} />
+              <StatCard label="Critical" value={home.data?.stats?.criticalCount ?? 0} tone="critical" />
+              <StatCard label="Warnings" value={home.data?.stats?.warningCount ?? 0} tone="warning" />
             </View>
           </View>
 
@@ -78,8 +78,8 @@ export default function HomeScreen() {
             <Text style={styles.sectionTitle}>NEARBY HAZARDS</Text>
             {home.data?.nearbyHazards.length ? (
               <View style={styles.hazardList}>
-                {home.data.nearbyHazards.map((hazard) => (
-                  <HazardCard key={hazard.id} hazard={hazard} onPress={() => openHazard(hazard)} />
+                {home.data.nearbyHazards.map((hazard, index) => (
+                  <HazardCard key={`${hazard.id}-${index}`} hazard={hazard} onPress={() => openHazard(hazard)} />
                 ))}
               </View>
             ) : (

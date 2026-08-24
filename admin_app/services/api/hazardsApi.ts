@@ -22,7 +22,7 @@ export interface HazardListParams {
 }
 
 const TAB_STATUS: Partial<Record<HazardTab, AdminHazard['status'][]>> = {
-  NEW: ['NEW'],
+  NEW: ['NEW', 'REPORTED'],
   UNDER_REVIEW: ['UNDER_REVIEW'],
   ACTIVE: ['ACTIVE', 'VERIFIED'],
   DUPLICATE: ['DUPLICATE'],

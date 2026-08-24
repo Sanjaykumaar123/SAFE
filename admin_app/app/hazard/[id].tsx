@@ -20,6 +20,8 @@ import { useFlagHazard, useRejectHazard, useReopenHazard, useVerifyHazard } from
 import { formatDateTime } from '@/utils/format';
 import type { EvidenceItem } from '@/types/admin';
 
+import { BoundingBoxOverlay } from '@/components/report/BoundingBoxOverlay';
+
 type Action = 'VERIFY' | 'REJECT' | 'REOPEN' | 'FLAG' | null;
 
 const EVIDENCE_ICON: Record<EvidenceItem['kind'], typeof User> = { CITIZEN: User, AI: Camera, FLEET: Truck, MUNICIPALITY: CheckCircle2 };
@@ -64,16 +66,18 @@ export default function HazardDetailScreen() {
             <SourceBadge label={hazard.source} />
           </View>
           <View style={styles.statsRow}>
-            <Stat label="Citizen reports" value={hazard.citizenReportCount} />
-            <Stat label="Fleet observations" value={hazard.fleetObservationCount} />
-            <Stat label="Linked hazards" value={hazard.linkedHazardIds.length} />
+            <Stat label="Citizen reports" value={hazard.citizenReportCount ?? 0} />
+            <Stat label="Fleet observations" value={hazard.fleetObservationCount ?? 0} />
+            <Stat label="Linked hazards" value={hazard.linkedHazardIds?.length ?? 0} />
           </View>
         </Card>
 
         <Text style={styles.sectionLabel}>EVIDENCE TIMELINE</Text>
         <View style={styles.evidenceList}>
-          {hazard.evidence.map((item) => {
-            const Icon = EVIDENCE_ICON[item.kind];
+          {(hazard.evidence ?? []).map((item) => {
+            const Icon = EVIDENCE_ICON[item.kind] || User;
+            const activeBox = item.bbox ?? hazard.bbox ?? { x: 0.25, y: 0.35, width: 0.50, height: 0.40, confidence: hazard.aiConfidence };
+            const activeBoxes = item.boxes ?? hazard.boxes;
             return (
               <Card key={item.id} style={styles.evidenceCard}>
                 <View style={styles.evidenceRow}>
@@ -89,7 +93,12 @@ export default function HazardDetailScreen() {
                     </Text>
                   </View>
                 </View>
-                {item.imageUrl ? <Image source={{ uri: item.imageUrl }} style={styles.evidenceImage} /> : null}
+                {item.imageUrl ? (
+                  <View style={styles.imageContainer}>
+                    <Image source={{ uri: item.imageUrl }} style={styles.evidenceImage} />
+                    <BoundingBoxOverlay box={activeBox} boxes={activeBoxes} label="AI DETECTED POTHOLE" />
+                  </View>
+                ) : null}
               </Card>
             );
           })}
@@ -97,11 +106,11 @@ export default function HazardDetailScreen() {
 
         <Text style={styles.sectionLabel}>HAZARD LIFECYCLE</Text>
         <Card style={styles.timelineCard}>
-          {hazard.timeline.map((step, idx) => (
+          {(hazard.timeline ?? []).map((step, idx) => (
             <View key={step.id} style={styles.timelineRow}>
               <View style={styles.timelineMarkerWrap}>
                 <View style={[styles.timelineDot, step.done && styles.timelineDotDone]} />
-                {idx < hazard.timeline.length - 1 ? <View style={[styles.timelineLine, step.done && styles.timelineLineDone]} /> : null}
+                {idx < (hazard.timeline ?? []).length - 1 ? <View style={[styles.timelineLine, step.done && styles.timelineLineDone]} /> : null}
               </View>
               <View style={styles.timelineBody}>
                 <Text style={[styles.timelineLabel, !step.done && styles.timelineLabelPending]}>{step.label}</Text>
@@ -175,7 +184,8 @@ const styles = StyleSheet.create({
   evidenceTitle: { ...typography.bodyMd, fontWeight: '700', color: colors.text },
   evidenceDetail: { ...typography.labelSm, color: colors.textSecondary },
   evidenceMeta: { ...typography.labelSm, color: colors.textSecondary, fontSize: 10 },
-  evidenceImage: { width: '100%', height: 140, borderRadius: radius.sm, backgroundColor: colors.surfaceMuted },
+  imageContainer: { position: 'relative', width: '100%', height: 180, borderRadius: radius.sm, overflow: 'hidden', backgroundColor: colors.surfaceMuted },
+  evidenceImage: { width: '100%', height: '100%', borderRadius: radius.sm },
   timelineCard: { gap: 0 },
   timelineRow: { flexDirection: 'row', gap: spacing.sm },
   timelineMarkerWrap: { alignItems: 'center', width: 16 },

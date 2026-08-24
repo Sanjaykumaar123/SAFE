@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { DEMO_MODE } from '@/constants/config';
 
 export interface UploadMediaResult {
   url: string;
@@ -10,6 +11,9 @@ export interface UploadMediaResult {
  * `POST /media/upload` — see services/media for the compression step that
  * happens before this is called (section 38). */
 export async function uploadMedia(uri: string, filename: string, mimeType: string): Promise<UploadMediaResult> {
+  if (DEMO_MODE) {
+    return { url: uri, contentType: mimeType, sizeBytes: 102400 };
+  }
   const formData = new FormData();
   // React Native's FormData accepts this file-shaped object; the DOM `File`
   // type doesn't describe it, hence the cast.

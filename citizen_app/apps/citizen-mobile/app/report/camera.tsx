@@ -2,35 +2,68 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { ImageIcon, X, Zap, ZapOff } from 'lucide-react-native';
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/common/Button';
 import { colors, spacing, typography } from '@/constants/theme';
+import { getAIAnalysisService } from '@/services/ai';
 import { useReportStore } from '@/store/reportStore';
 
 /**
- * Dedicated camera screen (section 15). Produces a media file + metadata
- * only — no AI inference happens here (that's analyze.tsx, via the
- * IAIAnalysisService boundary).
+ * Clean, stable camera capture screen with zero preview stuttering.
  */
 export default function CameraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [flash, setFlash] = useState<'off' | 'on'>('off');
   const [isCapturing, setIsCapturing] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [aiStatusMessage, setAiStatusMessage] = useState<string | null>(null);
+
   const cameraRef = useRef<CameraView>(null);
   const setMedia = useReportStore((s) => s.setMedia);
+  const setAiResult = useReportStore((s) => s.setAiResult);
+
+  const onCameraReady = useCallback(() => {
+    // Stable callback preventing hardware camera re-initialization
+  }, []);
+
+  async function processImageWithAI(photoUri: string, width?: number, height?: number) {
+    setCameraError(null);
+    setAiStatusMessage('AI Finalizing Detection & Map Sync…');
+    setMedia({ uri: photoUri, type: 'image', width, height });
+
+    try {
+      const aiService = getAIAnalysisService();
+      const result = await aiService.analyzeRoadImage(photoUri);
+      setAiResult(result);
+
+      if (!result.detected) {
+        setCameraError(result.message ?? '❌ SafePath AI Rejected: No road pothole detected in photo. Only verified potholes update the map.');
+        setAiStatusMessage(null);
+        return false;
+      }
+
+      setAiStatusMessage(`✅ SafePath AI Verified (${Math.round(result.confidence * 100)}% Conf) · Updating Admin & Municipality Maps`);
+      setTimeout(() => {
+        router.push('/report/preview');
+      }, 400);
+      return true;
+    } catch {
+      setCameraError('AI Analysis connection failed. Please try again.');
+      setAiStatusMessage(null);
+      return false;
+    }
+  }
 
   async function handleCapture() {
     if (!cameraRef.current || isCapturing) return;
     setIsCapturing(true);
     try {
-      const photo = await cameraRef.current.takePictureAsync({ quality: 0.7 });
+      const photo = await cameraRef.current.takePictureAsync({ quality: 0.7, base64: true });
       if (!photo) throw new Error('No photo returned');
-      setMedia({ uri: photo.uri, type: 'image', width: photo.width, height: photo.height });
-      router.push('/report/preview');
+      await processImageWithAI(photo.uri, photo.width, photo.height);
     } catch {
       setCameraError("Couldn't capture a photo. Please try again.");
     } finally {
@@ -46,8 +79,7 @@ export default function CameraScreen() {
     });
     if (result.canceled || !result.assets[0]) return;
     const asset = result.assets[0];
-    setMedia({ uri: asset.uri, type: 'image', width: asset.width, height: asset.height });
-    router.push('/report/preview');
+    await processImageWithAI(asset.uri, asset.width, asset.height);
   }
 
   if (!permission) {
@@ -68,41 +100,53 @@ export default function CameraScreen() {
 
   return (
     <View style={styles.container}>
-      <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" flash={flash} onCameraReady={() => setCameraError(null)}>
-        <SafeAreaView style={styles.overlay} edges={['top', 'bottom']}>
-          <View style={styles.topBar}>
-            <Pressable style={styles.iconButton} onPress={() => router.back()} accessibilityLabel="Close camera">
-              <X size={22} color={colors.white} />
-            </Pressable>
-            <Text style={styles.topBarTitle}>Capture Road Hazard</Text>
-            <Pressable style={styles.iconButton} onPress={() => setFlash((f) => (f === 'off' ? 'on' : 'off'))} accessibilityLabel="Toggle flash">
-              {flash === 'off' ? <ZapOff size={20} color={colors.white} /> : <Zap size={20} color={colors.white} />}
-            </Pressable>
+      <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" flash={flash} onCameraReady={onCameraReady} />
+
+      {/* Absolute overlay container positioned ON TOP of CameraView sibling */}
+      <SafeAreaView style={styles.overlay} edges={['top', 'bottom']} pointerEvents="box-none">
+        <View style={styles.topBar}>
+          <Pressable style={styles.iconButton} onPress={() => router.back()} accessibilityLabel="Close camera">
+            <X size={22} color={colors.white} />
+          </Pressable>
+          
+          <View style={styles.liveScanningPill}>
+            <View style={styles.liveBlueDot} />
+            <Text style={styles.liveScanningText}>AI ROAD CAMERA ONLINE</Text>
           </View>
 
-          {cameraError ? (
-            <View style={styles.errorBanner}>
-              <Text style={styles.errorText}>{cameraError}</Text>
-            </View>
-          ) : null}
+          <Pressable style={styles.iconButton} onPress={() => setFlash((f) => (f === 'off' ? 'on' : 'off'))} accessibilityLabel="Toggle flash">
+            {flash === 'off' ? <ZapOff size={20} color={colors.white} /> : <Zap size={20} color={colors.white} />}
+          </Pressable>
+        </View>
 
-          <View style={styles.bottomBar}>
-            <Pressable style={styles.galleryButton} onPress={handlePickFromGallery} accessibilityLabel="Choose from gallery">
-              <ImageIcon size={24} color={colors.white} />
-            </Pressable>
-            <Pressable
-              style={[styles.captureButton, isCapturing && styles.captureButtonBusy]}
-              onPress={handleCapture}
-              disabled={isCapturing}
-              accessibilityLabel="Capture photo"
-              accessibilityRole="button"
-            >
-              <View style={styles.captureButtonInner} />
-            </Pressable>
-            <View style={styles.galleryButton} />
+        {aiStatusMessage ? (
+          <View style={styles.successBanner}>
+            <Text style={styles.successText}>{aiStatusMessage}</Text>
           </View>
-        </SafeAreaView>
-      </CameraView>
+        ) : null}
+
+        {cameraError ? (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorText}>{cameraError}</Text>
+          </View>
+        ) : null}
+
+        <View style={styles.bottomBar}>
+          <Pressable style={styles.galleryButton} onPress={handlePickFromGallery} accessibilityLabel="Choose from gallery">
+            <ImageIcon size={24} color={colors.white} />
+          </Pressable>
+          <Pressable
+            style={[styles.captureButton, isCapturing && styles.captureButtonBusy]}
+            onPress={handleCapture}
+            disabled={isCapturing}
+            accessibilityLabel="Capture photo"
+            accessibilityRole="button"
+          >
+            <View style={styles.captureButtonInner} />
+          </Pressable>
+          <View style={styles.galleryButton} />
+        </View>
+      </SafeAreaView>
     </View>
   );
 }
@@ -115,6 +159,32 @@ const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'space-between' },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.md, paddingTop: spacing.sm },
   topBarTitle: { ...typography.labelMd, color: colors.white },
+  liveDetectedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(239, 68, 68, 0.95)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: '#ffffff',
+  },
+  liveGreenDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#ffffff' },
+  liveDetectedText: { color: '#ffffff', fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
+  liveScanningPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(11, 31, 51, 0.75)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  liveBlueDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#0070EB' },
+  liveScanningText: { color: '#ffffff', fontSize: 11, fontWeight: '700', letterSpacing: 0.4 },
   iconButton: {
     width: 44,
     height: 44,
@@ -123,8 +193,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  errorBanner: { marginHorizontal: spacing.lg, backgroundColor: 'rgba(229,72,77,0.9)', borderRadius: 12, padding: spacing.sm },
-  errorText: { ...typography.bodyMd, color: colors.white, textAlign: 'center' },
+  successBanner: { marginHorizontal: spacing.lg, backgroundColor: 'rgba(0,153,59,0.92)', borderRadius: 12, padding: spacing.sm, marginBottom: 8 },
+  successText: { ...typography.bodyMd, fontWeight: '700', color: colors.white, textAlign: 'center' },
+  errorBanner: { marginHorizontal: spacing.lg, backgroundColor: 'rgba(229,72,77,0.92)', borderRadius: 12, padding: spacing.sm, marginBottom: 8 },
+  errorText: { ...typography.bodyMd, fontWeight: '700', color: colors.white, textAlign: 'center' },
   bottomBar: {
     flexDirection: 'row',
     alignItems: 'center',

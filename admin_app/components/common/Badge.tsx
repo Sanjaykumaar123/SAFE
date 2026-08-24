@@ -12,17 +12,17 @@ function withAlpha(hex: string, alpha: string): string {
 }
 
 export function SeverityBadge({ severity }: { severity: SeverityType }) {
-  const color = severityColors[severity];
+  const color = severityColors[severity] || colors.warning;
   const Icon = severity === 'CRITICAL' || severity === 'HIGH' ? ShieldAlert : AlertTriangle;
   return (
     <View style={[styles.base, { backgroundColor: withAlpha(color, '1A') }]}>
       <Icon size={12} color={color} />
-      <Text style={[styles.label, { color }]}>{severity}</Text>
+      <Text style={[styles.label, { color }]}>{severity || 'LOW'}</Text>
     </View>
   );
 }
 
-const STATUS_ICONS: Record<HazardStatusType, typeof CheckCircle2> = {
+const STATUS_ICONS: Record<string, typeof CheckCircle2> = {
   NEW: Clock,
   UNDER_REVIEW: Info,
   VERIFIED: ShieldCheck,
@@ -32,15 +32,18 @@ const STATUS_ICONS: Record<HazardStatusType, typeof CheckCircle2> = {
   REOPENED: RotateCcw,
   REJECTED: XCircle,
   DUPLICATE: Copy,
+  REPORTED: Info,
 };
 
 export function HazardStatusBadge({ status }: { status: HazardStatusType }) {
-  const color = hazardStatusColors[status];
-  const Icon = STATUS_ICONS[status];
+  const safeStatus = (status || 'NEW').toUpperCase() as HazardStatusType;
+  const color = hazardStatusColors[safeStatus] || colors.primaryBlue;
+  const Icon = STATUS_ICONS[safeStatus] || STATUS_ICONS[status] || Clock;
+  const label = HAZARD_STATUS_LABELS[safeStatus] || status || 'NEW';
   return (
     <View style={[styles.base, { backgroundColor: withAlpha(color, '1A') }]}>
       <Icon size={12} color={color} />
-      <Text style={[styles.label, { color }]}>{HAZARD_STATUS_LABELS[status]}</Text>
+      <Text style={[styles.label, { color }]}>{label}</Text>
     </View>
   );
 }

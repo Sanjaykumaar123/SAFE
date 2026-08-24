@@ -7,7 +7,7 @@ import { colors, spacing, typography } from '@/constants/theme';
 import { useAuthStore } from '@/store/authStore';
 import { useSettingsStore } from '@/store/settingsStore';
 
-const MIN_SPLASH_MS = 900;
+const MIN_SPLASH_MS = 200;
 
 /**
  * SPLASH -> ONBOARDING -> PERMISSIONS -> LOGIN/REGISTER -> HOME

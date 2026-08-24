@@ -11,15 +11,15 @@ let instance: IAIInferenceService | null = null;
 export function getAIInferenceService(): IAIInferenceService {
   if (instance) return instance;
   switch (AI_MODE) {
-    case 'server':
-      instance = new ServerYOLOInferenceService();
-      break;
     case 'ondevice':
       instance = new OnDeviceYOLOInferenceService();
       break;
     case 'mock':
-    default:
       instance = new MockAIInferenceService();
+      break;
+    case 'server':
+    default:
+      instance = new ServerYOLOInferenceService();
       break;
   }
   return instance;

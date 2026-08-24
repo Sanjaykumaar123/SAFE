@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/common/Button';
 import { colors, radius, spacing, typography } from '@/constants/theme';
 import { locationService } from '@/services/location/locationService';
+import { BoundingBoxOverlay } from '@/components/report/BoundingBoxOverlay';
 import { useReportStore } from '@/store/reportStore';
 
 /**
@@ -18,6 +19,7 @@ export default function PreviewScreen() {
   const media = useReportStore((s) => s.media);
   const location = useReportStore((s) => s.location);
   const capturedAt = useReportStore((s) => s.capturedAt);
+  const aiResult = useReportStore((s) => s.aiResult);
   const setLocation = useReportStore((s) => s.setLocation);
   const setCapturedAt = useReportStore((s) => s.setCapturedAt);
 
@@ -51,6 +53,7 @@ export default function PreviewScreen() {
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <View style={styles.imageWrap}>
         <Image source={{ uri: media.uri }} style={styles.image} />
+        {aiResult?.detected ? <BoundingBoxOverlay box={aiResult.boundingBox} boxes={aiResult.boundingBoxes} /> : null}
         <Pressable style={styles.retakeButton} onPress={() => router.replace('/report/camera')} accessibilityLabel="Retake photo">
           <RotateCcw size={18} color={colors.white} />
           <Text style={styles.retakeText}>Retake</Text>

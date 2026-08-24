@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.v1 import ai, auth, citizen, hazards, locations, media, notifications, reports
-from app.api.v1 import fleet, municipality
+from app.api.v1 import fleet, municipality, admin
 from app.core.config import settings
 
 app = FastAPI(
@@ -36,17 +36,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Local-disk media (default STORAGE_PROVIDER=local) served back out from
-# here. Switching to STORAGE_PROVIDER=s3 makes this mount unused — media
-# URLs then point straight at the S3-compatible endpoint instead.
 app.mount("/media", StaticFiles(directory=settings.STORAGE_LOCAL_DIR, check_dir=False), name="media")
 
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
-    """Normalize FastAPI's default 422 body to a single friendly `detail`
-    string so the mobile client's error handling doesn't special-case
-    validation errors vs. every other 4xx."""
     first_error = exc.errors()[0] if exc.errors() else None
     message = "Invalid request."
     if first_error:
@@ -60,6 +54,17 @@ async def health_check() -> dict:
     return {"status": "ok", "environment": settings.ENVIRONMENT, "demo_mode": settings.DEMO_MODE, "ai_provider": settings.AI_PROVIDER}
 
 
+@app.post("/detect", tags=["ai"])
+@app.post("/ai/detect", tags=["ai"])
+@app.post("/api/detect", tags=["ai"])
+@app.post("/api/predict/image", tags=["ai"])
+@app.post("/predict/image", tags=["ai"])
+async def root_detect_proxy(request: Request):
+    """Proxy detect/predict calls directly to AI detection service."""
+    return await ai.detect_base64_or_form(request=request)
+
+
+
 api_prefix = settings.API_V1_PREFIX
 app.include_router(auth.router, prefix=api_prefix)
 app.include_router(hazards.router, prefix=api_prefix)
@@ -71,3 +76,5 @@ app.include_router(ai.router, prefix=api_prefix)
 app.include_router(citizen.router, prefix=api_prefix)
 app.include_router(municipality.router, prefix=api_prefix)
 app.include_router(fleet.router, prefix=api_prefix)
+app.include_router(admin.router, prefix=api_prefix)
+

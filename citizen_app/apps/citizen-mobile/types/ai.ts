@@ -10,6 +10,8 @@ export interface BoundingBox {
   y: number;
   width: number;
   height: number;
+  confidence?: number;
+  label?: string;
 }
 
 export interface AIAnalysisResult {
@@ -18,6 +20,7 @@ export interface AIAnalysisResult {
   confidence: number;
   severity?: SeverityType;
   boundingBox?: BoundingBox;
+  boundingBoxes?: BoundingBox[];
   processingTimeMs: number;
   modelVersion: string;
   message?: string;

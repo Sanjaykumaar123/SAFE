@@ -40,10 +40,8 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="hazard/[id]" options={{ presentation: 'card' }} />
             <Stack.Screen name="hazard/evidence" options={{ presentation: 'fullScreenModal' }} />
-            <Stack.Screen name="report/camera" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
-            <Stack.Screen name="report/analyze" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
-            <Stack.Screen name="reports/index" />
-            <Stack.Screen name="reports/[id]" />
+            <Stack.Screen name="report" />
+            <Stack.Screen name="settings" />
           </Stack>
         </QueryClientProvider>
       </SafeAreaProvider>

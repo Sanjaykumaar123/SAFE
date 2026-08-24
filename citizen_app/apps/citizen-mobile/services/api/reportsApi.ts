@@ -1,7 +1,7 @@
 import { apiClient } from './client';
 import { DEMO_MODE } from '@/constants/config';
-import { DEMO_REPORTS } from '@/constants/demoData';
-import type { CitizenReport, CreateReportPayload, ReportListItem } from '@/types';
+import { DEMO_HAZARDS, DEMO_HOME, DEMO_REPORTS } from '@/constants/demoData';
+import type { CitizenReport, CreateReportPayload, Hazard, ReportListItem } from '@/types';
 
 const demoReports: CitizenReport[] = [];
 let demoReportSequence = 1042;
@@ -10,10 +10,36 @@ export const reportsApi = {
   async create(payload: CreateReportPayload): Promise<CitizenReport> {
     if (DEMO_MODE) {
       demoReportSequence += 1;
+      const newHazardId = `demo-hazard-${demoReportSequence}`;
+      const newHazard: Hazard = {
+        id: newHazardId,
+        type: payload.hazardType,
+        severity: payload.severity,
+        status: 'REPORTED',
+        latitude: payload.latitude,
+        longitude: payload.longitude,
+        locationText: payload.locationText,
+        roadName: payload.locationText,
+        imageUrl: payload.mediaUrls[0] ?? null,
+        aiConfidence: payload.aiAnalysis?.confidence ?? 0.88,
+        description: payload.description ?? null,
+        distanceMeters: 50,
+        verificationNote: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastObservedAt: new Date().toISOString(),
+      };
+      DEMO_HAZARDS.unshift(newHazard);
+      DEMO_HOME.nearbyHazards.unshift(newHazard);
+      DEMO_HOME.mapMarkers.unshift(newHazard);
+      DEMO_HOME.stats.nearbyCount += 1;
+      if (payload.severity === 'CRITICAL') DEMO_HOME.stats.criticalCount += 1;
+      else DEMO_HOME.stats.warningCount += 1;
+
       const report: CitizenReport = {
         id: `demo-report-${demoReportSequence}`,
         reportCode: `PTH-${demoReportSequence}`,
-        hazardId: `demo-hazard-${demoReportSequence}`,
+        hazardId: newHazardId,
         hazardType: payload.hazardType,
         severity: payload.severity,
         status: 'REPORTED',

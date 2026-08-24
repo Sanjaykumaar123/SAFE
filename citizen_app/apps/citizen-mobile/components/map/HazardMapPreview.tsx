@@ -23,7 +23,18 @@ interface HazardMapPreviewProps {
  * buttons and tapping the map itself hand off to the full Map tab rather
  * than duplicating pan/zoom/route logic here.
  */
+import { useMemo } from 'react';
+
 export function HazardMapPreview({ center, hazards, onSelectHazard }: HazardMapPreviewProps) {
+  const uniqueHazards = useMemo(() => {
+    const seen = new Set<string>();
+    return hazards.filter((h) => {
+      if (!h.id || seen.has(h.id)) return false;
+      seen.add(h.id);
+      return true;
+    });
+  }, [hazards]);
+
   return (
     <View style={styles.container}>
       <MapLibreMap
@@ -40,8 +51,8 @@ export function HazardMapPreview({ center, hazards, onSelectHazard }: HazardMapP
         logo={false}
       >
         <Camera initialViewState={{ center: toMapLibreCoordinate(center), zoom: 13.5 }} />
-        {hazards.map((hazard) => (
-          <HazardMarker key={hazard.id} hazard={hazard} onPress={onSelectHazard} />
+        {uniqueHazards.map((hazard, index) => (
+          <HazardMarker key={`${hazard.id}-${index}`} hazard={hazard} onPress={onSelectHazard} />
         ))}
       </MapLibreMap>
 

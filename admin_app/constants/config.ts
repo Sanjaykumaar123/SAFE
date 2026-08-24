@@ -2,7 +2,7 @@
  * `process.env.EXPO_PUBLIC_*` directly (§80: no database URL ever lives in
  * a client env var, only this HTTP API base). */
 export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:8000/api';
-export const DEMO_MODE = process.env.EXPO_PUBLIC_DEMO_MODE === 'true';
+export const DEMO_MODE = process.env.EXPO_PUBLIC_DEMO_MODE !== 'false';
 export const MAP_KEY = process.env.EXPO_PUBLIC_MAP_KEY ?? '';
 export const GEOCODE_URL = process.env.EXPO_PUBLIC_GEOCODE_URL ?? 'https://nominatim.openstreetmap.org';
 

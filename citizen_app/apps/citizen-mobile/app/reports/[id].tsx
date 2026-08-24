@@ -7,6 +7,7 @@ import { SeverityBadge } from '@/components/common/Badge';
 import { ErrorState } from '@/components/common/ErrorState';
 import { LoadingState } from '@/components/common/LoadingState';
 import { ReportTimeline } from '@/components/report/ReportTimeline';
+import { BoundingBoxOverlay } from '@/components/report/BoundingBoxOverlay';
 import { HAZARD_TYPE_LABELS } from '@/constants/hazardType';
 import { colors, radius, spacing, typography } from '@/constants/theme';
 import { useReportDetail } from '@/features/reports/useReportDetail';
@@ -34,7 +35,12 @@ export default function ReportDetailScreen() {
         <ScrollView contentContainerStyle={styles.scroll}>
           <View style={styles.imageWrap}>
             {report.media[0] ? (
-              <Image source={{ uri: report.media[0] }} style={styles.image} />
+              <>
+                <Image source={{ uri: report.media[0] }} style={styles.image} />
+                {report.aiAnalysis?.detected ? (
+                  <BoundingBoxOverlay box={report.aiAnalysis.boundingBox} boxes={report.aiAnalysis.boundingBoxes} label="AI DETECTED POTHOLE" />
+                ) : null}
+              </>
             ) : (
               <View style={[styles.image, styles.imagePlaceholder]}>
                 <Camera size={32} color={colors.textSecondary} />

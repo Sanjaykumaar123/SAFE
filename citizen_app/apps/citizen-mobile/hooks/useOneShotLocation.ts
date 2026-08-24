@@ -10,26 +10,25 @@ import { locationService, type Coordinates } from '@/services/location/locationS
  * always has something reasonable to query with.
  */
 export function useOneShotLocation() {
-  const [coords, setCoords] = useState<Coordinates | null>(null);
+  const [coords, setCoords] = useState<Coordinates | null>(DEFAULT_MAP_CENTER);
   const [permissionDenied, setPermissionDenied] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   const refresh = useCallback(async () => {
-    setIsLoading(true);
-    const status = await locationService.getPermissionStatus();
-    if (status !== 'granted') {
-      const requested = await locationService.requestPermission();
-      if (requested !== 'granted') {
-        setPermissionDenied(true);
+    try {
+      const status = await locationService.getPermissionStatus();
+      if (status !== 'granted') {
+        setPermissionDenied(status === 'denied');
         setCoords(DEFAULT_MAP_CENTER);
-        setIsLoading(false);
         return;
       }
+      const current = await locationService.getCurrentLocation();
+      if (current) {
+        setCoords(current);
+      }
+    } catch {
+      setCoords(DEFAULT_MAP_CENTER);
     }
-    const current = await locationService.getCurrentLocation();
-    setCoords(current ?? DEFAULT_MAP_CENTER);
-    setPermissionDenied(current === null);
-    setIsLoading(false);
   }, []);
 
   useEffect(() => {

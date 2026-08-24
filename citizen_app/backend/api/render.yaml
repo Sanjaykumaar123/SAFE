@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: safepath-citizen-backend
+    env: python
+    region: singapore # or oregon, frankfurt, etc.
+    plan: free
+    rootDir: citizen_app/backend/api
+    buildCommand: "pip install --upgrade pip && pip install -r requirements.txt"
+    startCommand: "python -m alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DEMO_MODE
+        value: "false"
+      - key: API_V1_PREFIX
+        value: "/api"
+      - key: AI_PROVIDER
+        value: mock # Set to mock for Render free tier (512MB RAM) to avoid PyTorch OOM
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: DATABASE_URL
+        sync: false # Set your Supabase / PostGIS Postgres URL here
+      - key: DATABASE_URL_SYNC
+        sync: false # Set your sync Supabase Postgres URL here
+      - key: JWT_SECRET
+        generateValue: true

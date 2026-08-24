@@ -82,6 +82,15 @@ export interface ActionRequiredItem {
 
 // ---------------------------------------------------------------- Hazards
 
+export interface BoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  confidence?: number;
+  label?: string;
+}
+
 export interface EvidenceItem {
   id: string;
   kind: 'CITIZEN' | 'AI' | 'FLEET' | 'MUNICIPALITY';
@@ -92,6 +101,8 @@ export interface EvidenceItem {
   gpsQuality?: 'GOOD' | 'FAIR' | 'POOR';
   timestamp: string;
   actorLabel: string;
+  bbox?: BoundingBox | null;
+  boxes?: BoundingBox[] | null;
 }
 
 export interface HazardTimelineStep {
@@ -126,6 +137,8 @@ export interface AdminHazard extends Versioned {
   linkedHazardIds: string[];
   createdAt: string;
   lastUpdateAt: string;
+  bbox?: BoundingBox | null;
+  boxes?: BoundingBox[] | null;
 }
 
 export interface AdminHazardDetail extends AdminHazard {

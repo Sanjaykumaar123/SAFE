@@ -12,18 +12,25 @@ function withAlpha(hex: string, alpha: string): string {
   return `${hex}${alpha}`;
 }
 
-export function SeverityBadge({ severity }: { severity: SeverityType }) {
-  const color = severityColors[severity];
-  const Icon = severity === 'CRITICAL' || severity === 'HIGH' ? ShieldAlert : AlertTriangle;
+export function SeverityBadge({ severity }: { severity: SeverityType | string }) {
+  const norm = (severity || 'LOW').toUpperCase();
+  const validSeverity: SeverityType =
+    norm === 'MODERATE' || norm === 'MEDIUM' ? 'MEDIUM' :
+    norm === 'CRITICAL' ? 'CRITICAL' :
+    norm === 'HIGH' ? 'HIGH' : 'LOW';
+
+  const color = severityColors[validSeverity] ?? colors.textSecondary;
+  const Icon = validSeverity === 'CRITICAL' || validSeverity === 'HIGH' ? ShieldAlert : AlertTriangle;
+  const label = SEVERITY_LABELS[validSeverity] ?? validSeverity;
   return (
     <View style={[styles.base, { backgroundColor: withAlpha(color, '1A') }]}>
       <Icon size={12} color={color} />
-      <Text style={[styles.label, { color }]}>{SEVERITY_LABELS[severity].toUpperCase()}</Text>
+      <Text style={[styles.label, { color }]}>{label.toUpperCase()}</Text>
     </View>
   );
 }
 
-const STATUS_ICONS: Record<HazardStatusType, typeof CheckCircle2> = {
+const STATUS_ICONS: Record<string, typeof CheckCircle2> = {
   REPORTED: Clock,
   UNDER_REVIEW: Info,
   VERIFIED: CheckCircle2,
@@ -34,13 +41,16 @@ const STATUS_ICONS: Record<HazardStatusType, typeof CheckCircle2> = {
   DUPLICATE: Info,
 };
 
-export function StatusBadge({ status }: { status: HazardStatusType }) {
-  const color = statusColors[status];
-  const Icon = STATUS_ICONS[status];
+export function StatusBadge({ status }: { status: HazardStatusType | string }) {
+  const normStatus = (status || 'REPORTED').toUpperCase();
+  const validStatus = normStatus as HazardStatusType;
+  const color = statusColors[validStatus] ?? colors.textSecondary;
+  const Icon = STATUS_ICONS[normStatus] ?? Info;
+  const label = HAZARD_STATUS_LABELS[validStatus] ?? normStatus;
   return (
     <View style={[styles.base, { backgroundColor: withAlpha(color, '1A') }]}>
       <Icon size={12} color={color} />
-      <Text style={[styles.label, { color }]}>{HAZARD_STATUS_LABELS[status]}</Text>
+      <Text style={[styles.label, { color }]}>{label}</Text>
     </View>
   );
 }

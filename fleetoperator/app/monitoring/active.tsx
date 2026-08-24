@@ -52,11 +52,13 @@ export default function ActiveMonitoringScreen() {
   const [liveResult, setLiveResult] = useState<AIInferenceResult | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [stopping, setStopping] = useState(false);
+  const [frameRateFps, setFrameRateFps] = useState(initialParams.frameRateFps);
 
   useEffect(() => {
     const unsubscribe = locationService.subscribe((fix) => {
       const params = resolveMonitoringParams(fix.speed);
       trackerRef.current.setParams(params.trackingConfirmCount, params.trackingWindowMs);
+      setFrameRateFps((prev) => (prev === params.frameRateFps ? prev : params.frameRateFps));
     });
     return unsubscribe;
   }, []);
@@ -105,28 +107,32 @@ export default function ActiveMonitoringScreen() {
 
     const service = getAIInferenceService();
     try {
-      let frameUri = 'mock://frame';
-      // In server mode, only take a sample frame with a safe throttle (>= 2.5s)
-      // to keep the live camera preview silky smooth without any shutter stutter.
+      let frameUri = '';
       const now = Date.now();
-      if (service.modelName !== 'MockAI' && cameraRef.current && now - lastPhotoTimeRef.current > 2500) {
+      if (cameraRef.current && now - lastPhotoTimeRef.current > 400) {
+        lastPhotoTimeRef.current = now;
         try {
-          const photo = await cameraRef.current.takePictureAsync({ quality: 0.25, skipProcessing: true, shutterSound: false });
-          if (photo) {
+          const photo = await cameraRef.current.takePictureAsync({
+            quality: 0.15,
+            skipProcessing: true,
+            shutterSound: false,
+          });
+          if (photo?.uri) {
             frameUri = photo.uri;
-            lastPhotoTimeRef.current = now;
           }
         } catch {
-          frameUri = 'mock://frame';
+          frameUri = '';
         }
       }
 
-      const result = await service.analyze({ uri: frameUri });
-      setLiveResult(result.detected ? result : null);
+      if (frameUri) {
+        const result = await service.analyze({ uri: frameUri });
+        setLiveResult(result.detected ? result : null);
 
-      const finalized = trackerRef.current.feed(result);
-      if (finalized) {
-        await captureEvidenceAndRecord(finalized);
+        const finalized = trackerRef.current.feed(result);
+        if (finalized) {
+          await captureEvidenceAndRecord(finalized);
+        }
       }
     } catch {
       // Graceful error recovery
@@ -136,10 +142,11 @@ export default function ActiveMonitoringScreen() {
   }, [captureEvidenceAndRecord]);
 
   useEffect(() => {
-    // Run AI checks smoothly at 500ms intervals without overloading the camera hardware.
-    const interval = setInterval(runInferenceTick, 500);
+    // Run AI checks at the speed-adaptive rate from resolveMonitoringParams
+    // (up to 15fps at highway speed) instead of a fixed interval.
+    const interval = setInterval(runInferenceTick, 1000 / frameRateFps);
     return () => clearInterval(interval);
-  }, [runInferenceTick]);
+  }, [runInferenceTick, frameRateFps]);
 
   const handleStop = () => {
     Alert.alert('End monitoring?', `Distance: ${distanceKm.toFixed(1)} km\nPotholes: ${detectionCount}`, [

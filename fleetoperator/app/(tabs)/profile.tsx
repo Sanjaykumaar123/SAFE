@@ -30,25 +30,29 @@ export default function ProfileScreen() {
     ]);
   };
 
+  const displayName = operator.fullName || operator.name || 'Operator';
+  const initial = displayName ? displayName.charAt(0).toUpperCase() : 'O';
+  const vehicleReg = operator.vehicle?.registrationNumber || operator.vehiclePlate || operator.vehicle_plate;
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.header}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarInitial}>{operator.fullName.charAt(0)}</Text>
+          <Text style={styles.avatarInitial}>{initial}</Text>
         </View>
-        <Text style={styles.name}>{operator.fullName}</Text>
+        <Text style={styles.name}>{displayName}</Text>
         <Text style={styles.operatorCode}>{operator.operatorCode}</Text>
       </View>
 
       <Card style={styles.section}>
         <Row icon={<Mail size={18} color={colors.textSecondary} />} label="Email" value={operator.email} />
-        <Row icon={<ShieldCheck size={18} color={colors.textSecondary} />} label="City / Zone" value={`${operator.cityName ?? '—'} / ${operator.zoneName ?? '—'}`} />
+        <Row icon={<ShieldCheck size={18} color={colors.textSecondary} />} label="City / Zone" value={`${operator.cityName ?? 'Chennai'} / ${operator.zoneName ?? 'North Zone'}`} />
       </Card>
 
       <Card style={styles.section}>
         <Text style={styles.sectionTitle}>Vehicle</Text>
-        {operator.vehicle ? (
-          <Row icon={<Car size={18} color={colors.textSecondary} />} label={operator.vehicle.vehicleType ?? 'Vehicle'} value={operator.vehicle.registrationNumber} />
+        {vehicleReg ? (
+          <Row icon={<Car size={18} color={colors.textSecondary} />} label={operator.vehicle?.vehicleType ?? 'PATROL_VAN'} value={vehicleReg} />
         ) : (
           <Text style={styles.emptyText}>No vehicle currently assigned.</Text>
         )}

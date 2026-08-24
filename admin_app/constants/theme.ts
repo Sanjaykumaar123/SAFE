@@ -55,6 +55,7 @@ export const markerColors = {
  * municipality lifecycle: adds NEW/UNDER_REVIEW/DUPLICATE at the front of
  * the funnel and REOPENED/HIGH_PRIORITY as explicit tabs. */
 export const hazardStatusColors = {
+  REPORTED: colors.textSecondary,
   NEW: colors.textSecondary,
   UNDER_REVIEW: colors.purple,
   VERIFIED: colors.secondaryBlue,

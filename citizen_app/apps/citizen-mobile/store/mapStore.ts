@@ -1,47 +1,16 @@
-import { create } from 'zustand';
-
-import { DEFAULT_RADIUS_METERS } from '@/constants/config';
-import type { HazardStatusType } from '@/constants/hazardStatus';
-import type { SeverityType } from '@/constants/severity';
-import type { Hazard } from '@/types';
-
+/** `MapRegion` is the only thing still consumed from this module (by
+ * `utils/mapViewport.ts`). A Zustand `useMapStore` (region/filters/
+ * selectedHazard, including a `status` filter) used to live here, but no
+ * screen ever read it — `components/map/MapScreen.tsx` keeps its own local
+ * `useState` for severity filtering and the selected hazard instead, so the
+ * store was dead code that looked like a working status-filter mechanism.
+ * It's been removed rather than wired up: wiring it would mean deciding a
+ * filtering UX (MapScreen's multi-select severity `Set` doesn't map onto
+ * this store's single optional `severity`/`status` fields) rather than a
+ * mechanical fix. */
 export interface MapRegion {
   latitude: number;
   longitude: number;
   latitudeDelta: number;
   longitudeDelta: number;
 }
-
-export interface HazardFilters {
-  severity?: SeverityType;
-  status?: HazardStatusType;
-}
-
-interface MapState {
-  region: MapRegion | null;
-  radiusMeters: number;
-  filters: HazardFilters;
-  selectedHazard: Hazard | null;
-  setRegion: (region: MapRegion) => void;
-  setFilters: (filters: HazardFilters) => void;
-  clearFilters: () => void;
-  selectHazard: (hazard: Hazard | null) => void;
-}
-
-export const CHENNAI_DEFAULT_REGION: MapRegion = {
-  latitude: 13.0827,
-  longitude: 80.2707,
-  latitudeDelta: 0.08,
-  longitudeDelta: 0.08,
-};
-
-export const useMapStore = create<MapState>((set) => ({
-  region: null,
-  radiusMeters: DEFAULT_RADIUS_METERS,
-  filters: {},
-  selectedHazard: null,
-  setRegion: (region) => set({ region }),
-  setFilters: (filters) => set({ filters }),
-  clearFilters: () => set({ filters: {} }),
-  selectHazard: (hazard) => set({ selectedHazard: hazard }),
-}));

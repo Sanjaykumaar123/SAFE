@@ -11,7 +11,7 @@
  * `SYNCED`, never before (§80: "Never delete unsynced evidence").
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 import { SYNC_BATCH_SIZE, SYNC_MAX_RETRIES, SYNC_RETRY_BASE_DELAY_MS } from '@/constants/config';
 import { SyncStatus, type SyncStatusType } from '@/constants/enums';

@@ -343,7 +343,7 @@ export function MapScreen() {
             />
           </GeoJSONSource>
         ) : (
-          visibleHazards.map((hazard) => <HazardMarker key={hazard.id} hazard={hazard} onPress={setSelectedHazard} />)
+          visibleHazards.map((hazard, index) => <HazardMarker key={`${hazard.id}-${index}`} hazard={hazard} onPress={setSelectedHazard} />)
         )}
 
         {/* Safe Route Options Polylines */}

@@ -17,6 +17,7 @@ export interface Vehicle {
 export interface FleetOperator {
   id: string;
   fullName: string;
+  name?: string;
   email: string;
   role: string;
   operatorCode: string;
@@ -25,6 +26,8 @@ export interface FleetOperator {
   cityName: string | null;
   zoneName: string | null;
   vehicle: Vehicle | null;
+  vehiclePlate?: string | null;
+  vehicle_plate?: string | null;
   permissions: string[];
 }
 

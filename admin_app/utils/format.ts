@@ -1,9 +1,11 @@
 /** Small, dependency-free formatting helpers shared across admin screens —
  * kept here rather than pulling in a date/number library for this pass. */
 
-export function formatRelativeTime(iso: string): string {
-  const then = new Date(iso).getTime();
-  const diffMs = Date.now() - then;
+export function formatRelativeTime(iso?: string | null): string {
+  if (!iso) return 'Just now';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return 'Just now';
+  const diffMs = Date.now() - d.getTime();
   const diffMin = Math.round(diffMs / 60_000);
   if (diffMin < 1) return 'Just now';
   if (diffMin < 60) return `${diffMin} min ago`;
@@ -11,11 +13,14 @@ export function formatRelativeTime(iso: string): string {
   if (diffHr < 24) return `${diffHr} hr ago`;
   const diffDay = Math.round(diffHr / 24);
   if (diffDay < 7) return `${diffDay}d ago`;
-  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-export function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString('en-IN', {
+export function formatDateTime(iso?: string | null): string {
+  if (!iso) return new Date().toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return new Date().toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+  return d.toLocaleString('en-IN', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',

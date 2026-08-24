@@ -1,6 +1,7 @@
 import type { HazardStatusType } from '@/constants/hazardStatus';
 import type { HazardTypeType } from '@/constants/hazardType';
 import type { SeverityType } from '@/constants/severity';
+import type { BoundingBox } from '@/types';
 
 /** Mirrors backend `app/schemas/hazard.py::HazardOut` exactly — this is the
  * shared data contract documented in `docs/architecture.md`. */
@@ -18,6 +19,7 @@ export interface Hazard {
   description: string | null;
   distanceMeters: number | null;
   verificationNote: string | null;
+  bbox?: BoundingBox | null;
   createdAt: string;
   updatedAt: string;
   lastObservedAt: string;

@@ -76,7 +76,7 @@ export default function GlobalSearchScreen() {
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={query.trim().length > 1 ? <Text style={styles.emptyText}>No matches across the platform.</Text> : <Text style={styles.emptyText}>Search hazards, reports, vehicles, operators, cities, municipalities, or users.</Text>}
           renderItem={({ item }) => {
-            const Icon = KIND_ICON[item.kind];
+            const Icon = KIND_ICON[item.kind] || Search;
             return (
               <TouchableOpacity style={styles.resultRow} onPress={() => router.push(routeFor(item) as never)}>
                 <View style={styles.resultIcon}>

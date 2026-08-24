@@ -25,12 +25,13 @@ function mimeTypeForUri(uri: string, kind: 'image' | 'video'): string {
 }
 
 export async function validateAndUpload(uri: string, kind: 'image' | 'video'): Promise<UploadMediaResult> {
-  const file = new File(uri);
-  if (!file.exists) {
-    throw new MediaValidationError("This file couldn't be found. Please capture or select it again.");
-  }
-  if (file.size > MAX_FILE_SIZE_BYTES) {
-    throw new MediaValidationError('This file is too large (max 25MB). Please try a shorter clip or lower quality.');
+  try {
+    const file = new File(uri);
+    if (file.exists && file.size > MAX_FILE_SIZE_BYTES) {
+      throw new MediaValidationError('This file is too large (max 25MB). Please try a shorter clip or lower quality.');
+    }
+  } catch (e) {
+    if (e instanceof MediaValidationError) throw e;
   }
 
   const mimeType = mimeTypeForUri(uri, kind);

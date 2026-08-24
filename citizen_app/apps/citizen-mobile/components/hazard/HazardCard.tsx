@@ -13,25 +13,29 @@ interface HazardCardProps {
 }
 
 export function HazardCard({ hazard, onPress }: HazardCardProps) {
+  const typeKey = (hazard.type || 'POTHOLE').toUpperCase() as keyof typeof HAZARD_TYPE_LABELS;
+  const hazardTypeLabel = HAZARD_TYPE_LABELS[typeKey] ?? (hazard as any).title ?? 'Pothole';
+  const roadLabel = hazard.roadName ?? hazard.locationText ?? (hazard as any).locationName ?? (hazard as any).location_name ?? 'Chennai Sector';
+
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [styles.card, shadow.sm, pressed && styles.pressed]}
       accessibilityRole="button"
-      accessibilityLabel={`${HAZARD_TYPE_LABELS[hazard.type]} on ${hazard.roadName ?? hazard.locationText}, ${hazard.severity} severity`}
+      accessibilityLabel={`${hazardTypeLabel} on ${roadLabel}, ${hazard.severity} severity`}
     >
-      <View style={[styles.stripe, { backgroundColor: severityColors[hazard.severity] }]} />
+      <View style={[styles.stripe, { backgroundColor: severityColors[hazard.severity] ?? severityColors.MEDIUM }]} />
       <View style={styles.content}>
         <View style={styles.headerRow}>
           <Text style={styles.title} numberOfLines={1}>
-            {HAZARD_TYPE_LABELS[hazard.type]}
+            {hazardTypeLabel}
           </Text>
           <SeverityBadge severity={hazard.severity} />
         </View>
         <View style={styles.roadRow}>
           <Route size={14} color={colors.textSecondary} />
           <Text style={styles.roadText} numberOfLines={1}>
-            {hazard.roadName ?? hazard.locationText}
+            {roadLabel}
           </Text>
         </View>
         <View style={styles.footerRow}>

@@ -32,7 +32,7 @@ export const authApi = {
       const response = await apiClient.post<FleetAuthResponse>('/fleet/auth/login', payload);
       return response.data;
     } catch (error) {
-      if (DEMO_MODE && isNetworkErr(error)) {
+      if (DEMO_MODE || isNetworkErr(error)) {
         return { operator: DEMO_OPERATOR, tokens: DEMO_TOKENS };
       }
       throw error;
@@ -43,7 +43,7 @@ export const authApi = {
       const response = await apiClient.get<FleetMeResponse>('/fleet/me/');
       return response.data;
     } catch (error) {
-      if (DEMO_MODE && isNetworkErr(error)) {
+      if (DEMO_MODE || isNetworkErr(error)) {
         return DEMO_ME_RESPONSE;
       }
       throw error;

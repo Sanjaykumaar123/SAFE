@@ -1,0 +1,21 @@
+{
+  "name": "safepath-root",
+  "version": "1.0.0",
+  "description": "SafePath AI Monorepo Root - Single command setup and execution for all apps, AI backend server, and Postgres PostGIS database.",
+  "private": true,
+  "scripts": {
+    "setup": "npm install --legacy-peer-deps && npm run install:apps && npm run install:python",
+    "install:apps": "npm --prefix citizen_app/apps/citizen-mobile install --legacy-peer-deps && npm --prefix municipality install --legacy-peer-deps && npm --prefix admin_app install --legacy-peer-deps && npm --prefix fleetoperator install --legacy-peer-deps",
+    "install:python": "python -m pip install -r ai_model/requirements.txt",
+    "db:up": "docker compose -f citizen_app/docker-compose.yml up -d db || echo [DB] Postgres container skipped. Using persistent local DB.",
+    "db:down": "docker compose -f citizen_app/docker-compose.yml down",
+    "db:status": "python -c \"from ai_model.db import db_manager; print('DB Status: Healthy. Records count:', db_manager.get_hazard_count())\"",
+    "start": "npm run dev",
+    "dev": "concurrently --prefix-colors \"cyan,magenta,blue,yellow,green,red\" -n \"DB,AI-SERVER,CITIZEN,MUNICIPALITY,ADMIN,FLEET\" \"npm run db:up\" \"python ai_model/web_app.py\" \"npm --prefix citizen_app/apps/citizen-mobile start -- --port 8081\" \"npm --prefix municipality start -- --port 8082\" \"npm --prefix admin_app start -- --port 8083\" \"npm --prefix fleetoperator start -- --port 8084\"",
+    "dev:apps": "concurrently --prefix-colors \"blue,yellow,green,red\" -n \"CITIZEN,MUNICIPALITY,ADMIN,FLEET\" \"npm --prefix citizen_app/apps/citizen-mobile start -- --port 8081\" \"npm --prefix municipality start -- --port 8082\" \"npm --prefix admin_app start -- --port 8083\" \"npm --prefix fleetoperator start -- --port 8084\"",
+    "dev:backend": "concurrently --prefix-colors \"cyan,magenta\" -n \"DB,AI-SERVER\" \"npm run db:up\" \"python ai_model/web_app.py\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

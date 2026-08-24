@@ -7,6 +7,7 @@
  */
 
 export const HazardStatus = {
+  REPORTED: 'REPORTED',
   NEW: 'NEW',
   UNDER_REVIEW: 'UNDER_REVIEW',
   VERIFIED: 'VERIFIED',
@@ -20,6 +21,7 @@ export const HazardStatus = {
 export type HazardStatusType = (typeof HazardStatus)[keyof typeof HazardStatus];
 
 export const HAZARD_STATUS_LABELS: Record<HazardStatusType, string> = {
+  REPORTED: 'New',
   NEW: 'New',
   UNDER_REVIEW: 'Under Review',
   VERIFIED: 'Verified',

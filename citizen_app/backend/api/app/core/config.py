@@ -41,22 +41,15 @@ class Settings(BaseSettings):
     STORAGE_REGION: str = "auto"
 
     # --- AI ---
-    AI_PROVIDER: Literal["mock", "yolov8"] = "mock"
+    AI_PROVIDER: Literal["mock", "yolov8"] = "yolov8"
     # Path to a YOLO .pt checkpoint, relative to backend/api/ (or absolute).
-    # Bundled default is the BharatPotHole-finetuned YOLO26n checkpoint —
-    # see app/services/ai/yolo_service.py's module docstring for provenance
-    # and C:\...\aimodelsafe for the training pipeline it came from.
-    AI_MODEL_PATH: str = "app/ml_models/pothole_yolo26n_finetune_v1.pt"
-    # auto | cpu | 0 (CUDA device index) — "auto" picks CUDA if available,
-    # else CPU. Only read when AI_PROVIDER=yolov8.
+    AI_MODEL_PATH: str = "app/ml_models/pothole_v2_final.pt"
+    # auto | cpu | 0 (CUDA device index) — "auto" picks CUDA if available, else CPU.
     AI_DEVICE: Literal["auto", "cpu", "0"] = "auto"
-    # Detection confidence passed to the model itself (matches the training
-    # pipeline's own evaluate_model.py/predict.py convention). NOT the same
-    # threshold as fleet's AI_CONFIDENCE_THRESHOLD=0.50
-    # (app/api/v1/fleet/observations.py), which separately decides whether
-    # a detection is hazard-worthy — this one only decides whether the
-    # model reports a box at all.
     AI_DETECTION_CONFIDENCE: float = 0.25
+    AI_IOU_THRESHOLD: float = 0.45
+    AI_IMAGE_SIZE: int = 640
+
 
     # --- CORS ---
     CORS_ORIGINS: str = "http://localhost:8081,http://localhost:19006"
