@@ -11,6 +11,7 @@ import base64
 import time
 import json
 import uuid
+import hashlib
 from datetime import datetime, timezone
 
 # Ensure both local folder and parent root are in sys.path
@@ -107,6 +108,70 @@ def compute_severity(damage_ratio, pothole_count):
         return {"grade": 2, "label": "MODERATE DAMAGE", "color": "#f97316", "desc": "Noticeable potholes requiring scheduled maintenance."}
     else:
         return {"grade": 3, "label": "CRITICAL / SEVERE", "color": "#ef4444", "desc": "Severe pothole damage. Urgent repair recommended."}
+
+# ---------------- City Registry & GPS-based City Routing ----------------
+# Single source of truth for which city a hazard's GPS coordinates or a
+# municipality login belongs to. Every hazard (citizen or fleet-reported)
+# gets tagged against this table so Municipality accounts only ever see
+# their own city's hazards, never another city's.
+
+CITY_REGISTRY: Dict[str, Dict[str, Any]] = {
+    "c_che": {"name": "Chennai", "state": "Tamil Nadu", "code": "MAA", "municipality": "Greater Chennai Corporation",
+              "lat_min": 12.90, "lat_max": 13.25, "lng_min": 80.05, "lng_max": 80.35},
+    "c_kan": {"name": "Kanchipuram", "state": "Tamil Nadu", "code": "KAN", "municipality": "Kanchipuram Municipal Corporation",
+              "lat_min": 12.75, "lat_max": 12.95, "lng_min": 79.65, "lng_max": 79.85},
+    "c_blr": {"name": "Bengaluru", "state": "Karnataka", "code": "BLR", "municipality": "Bruhat Bengaluru Mahanagara Palike (BBMP)",
+              "lat_min": 12.85, "lat_max": 13.15, "lng_min": 77.40, "lng_max": 77.75},
+    "c_mum": {"name": "Mumbai", "state": "Maharashtra", "code": "BOM", "municipality": "Municipal Corporation of Greater Mumbai",
+              "lat_min": 18.89, "lat_max": 19.30, "lng_min": 72.75, "lng_max": 72.98},
+}
+DEFAULT_CITY_ID = "c_che"
+
+def resolve_city_for_coords(lat: Optional[float], lng: Optional[float]) -> Dict[str, str]:
+    """Map a hazard's exact GPS coordinates to the city whose bounds contain
+    them, so citizen reports and fleet observations are always routed to the
+    correct Municipality account. Falls back to the closest city center by
+    distance when the point sits outside every known bounding box, rather
+    than silently defaulting to one fixed city."""
+    if lat is not None and lng is not None:
+        for city_id, meta in CITY_REGISTRY.items():
+            if meta["lat_min"] <= lat <= meta["lat_max"] and meta["lng_min"] <= lng <= meta["lng_max"]:
+                return {"cityId": city_id, "cityName": meta["name"]}
+        try:
+            nearest_id = min(
+                CITY_REGISTRY,
+                key=lambda cid: (
+                    (lat - (CITY_REGISTRY[cid]["lat_min"] + CITY_REGISTRY[cid]["lat_max"]) / 2) ** 2
+                    + (lng - (CITY_REGISTRY[cid]["lng_min"] + CITY_REGISTRY[cid]["lng_max"]) / 2) ** 2
+                )
+            )
+            return {"cityId": nearest_id, "cityName": CITY_REGISTRY[nearest_id]["name"]}
+        except Exception:
+            pass
+    return {"cityId": DEFAULT_CITY_ID, "cityName": CITY_REGISTRY[DEFAULT_CITY_ID]["name"]}
+
+def resolve_city_for_municipality_login(municipality_code: Optional[str], email: Optional[str]) -> str:
+    """Resolve which city a Municipality officer belongs to from their login
+    (municipality code first, e.g. MUN-CHN / MUN-KAN, then email domain/local
+    part), instead of always logging every officer into the same city."""
+    code = (municipality_code or "").strip().upper()
+    mail = (email or "").strip().lower()
+    for city_id, meta in CITY_REGISTRY.items():
+        code_tag = meta["code"]
+        name_lower = meta["name"].lower()
+        if code_tag and code_tag in code:
+            return city_id
+        if name_lower[:3].upper() in code:
+            return city_id
+        if name_lower in mail or name_lower.replace(" ", "") in mail:
+            return city_id
+    return DEFAULT_CITY_ID
+
+def stable_user_id(prefix: str, key: str) -> str:
+    """Deterministic id derived from a stable identity (email / operator code)
+    so the same person maps to the same user-directory row across logins —
+    required for admin suspend/reactivate to actually stick."""
+    return f"{prefix}_{hashlib.sha1(key.strip().lower().encode('utf-8')).hexdigest()[:12]}"
 
 # ---------------- SafePath AI Schemas & Database Mock ----------------
 
@@ -251,6 +316,10 @@ class HazardModel(BaseModel):
     road_name: Optional[str] = None
     locationText: Optional[str] = None
     location_text: Optional[str] = None
+    cityId: Optional[str] = None
+    city_id: Optional[str] = None
+    cityName: Optional[str] = None
+    city_name: Optional[str] = None
     photoUrl: Optional[str] = None
     photo_url: Optional[str] = None
     aiConfidence: float = 0.92
@@ -274,6 +343,17 @@ class HazardModel(BaseModel):
 
         if "type" in data and isinstance(data["type"], str):
             data["type"] = data["type"].upper()
+
+        city_id = data.get("cityId") or data.get("city_id")
+        city_name = data.get("cityName") or data.get("city_name")
+        if not city_id or not city_name:
+            resolved = resolve_city_for_coords(data.get("latitude"), data.get("longitude"))
+            city_id = city_id or resolved["cityId"]
+            city_name = city_name or resolved["cityName"]
+        data["cityId"] = city_id
+        data["city_id"] = city_id
+        data["cityName"] = city_name
+        data["city_name"] = city_name
 
         if "photoUrl" in data and "photo_url" not in data:
             data["photo_url"] = data["photoUrl"]
@@ -467,7 +547,7 @@ def _sync_db_hazards():
             loaded_hazards.append(HazardModel(**r_copy))
         except Exception:
             pass
-    return loaded_hazards
+    return loaded_hazards if loaded_hazards else list(INITIAL_HAZARDS)
 
 DEMO_HAZARDS: List[HazardModel] = _sync_db_hazards()
 
@@ -482,7 +562,7 @@ DEMO_WORK_ORDERS: List[WorkOrderModel] = [
         slaBreached=False,
         createdAt="2026-08-22T10:45:00Z",
         estimatedCompletion="2026-08-24T16:00:00Z",
-        hazard=DEMO_HAZARDS[0]
+        hazard=DEMO_HAZARDS[0] if DEMO_HAZARDS else INITIAL_HAZARDS[0]
     )
 ]
 
@@ -535,15 +615,36 @@ async def login(req: LoginRequest):
     else:
         role = "CITIZEN"
         full_name = "Arun Kumar"
-        
+
+    email_final = raw_id if "@" in raw_id else f"{raw_id}@safepath.demo"
+
+    # Citizen/Fleet Admin/Officer accounts are only tracked here for roles the
+    # Admin app can actually manage (CITIZEN) — FLEET_OPERATOR has its own
+    # dedicated login below, keyed by operator code instead of email.
+    if role == "CITIZEN":
+        user_id = stable_user_id("usr", email_final)
+        existing = db_manager.get_user(user_id)
+        if existing and existing.get("status") in ("DEACTIVATED", "LOCKED"):
+            return JSONResponse(status_code=403, content={"error": "This account has been suspended by the Admin. Contact SafePath support."})
+        db_manager.upsert_user({
+            "id": user_id,
+            "displayName": full_name,
+            "email": email_final,
+            "role": role,
+            "createdAt": datetime.now(timezone.utc).isoformat(),
+            "lastActiveAt": datetime.now(timezone.utc).isoformat(),
+        })
+    else:
+        user_id = f"usr_{uuid.uuid4().hex[:8]}"
+
     user_dto = UserModel(
-        id=f"usr_{uuid.uuid4().hex[:8]}",
-        email=raw_id if "@" in raw_id else f"{raw_id}@safepath.demo",
+        id=user_id,
+        email=email_final,
         fullName=full_name,
         role=role,
         isDemoData=True
     )
-    
+
     return TokenResponse(
         accessToken=f"eySafePathJwtToken_{uuid.uuid4().hex}",
         refreshToken=f"eySafePathRefresh_{uuid.uuid4().hex}",
@@ -602,7 +703,7 @@ async def verify_hazard(hazard_id: str = Path(...)):
         if h.id == hazard_id:
             h.status = "VERIFIED"
             return h
-    return DEMO_HAZARDS[0]
+    return DEMO_HAZARDS[0] if DEMO_HAZARDS else INITIAL_HAZARDS[0]
 
 @app.post("/api/hazards/{hazard_id}/reject", response_model=HazardModel)
 async def reject_hazard(hazard_id: str = Path(...)):
@@ -611,7 +712,7 @@ async def reject_hazard(hazard_id: str = Path(...)):
         if h.id == hazard_id:
             h.status = "REJECTED"
             return h
-    return DEMO_HAZARDS[0]
+    return DEMO_HAZARDS[0] if DEMO_HAZARDS else INITIAL_HAZARDS[0]
 
 # ---------------- Safer Routes & Navigation ----------------
 
@@ -667,7 +768,8 @@ async def list_work_orders():
 
 @app.post("/api/work-orders", response_model=WorkOrderModel)
 async def create_work_order(req: CreateWorkOrderRequest):
-    h = next((x for x in DEMO_HAZARDS if x.id == req.hazardId), DEMO_HAZARDS[0])
+    fallback_h = DEMO_HAZARDS[0] if DEMO_HAZARDS else INITIAL_HAZARDS[0]
+    h = next((x for x in DEMO_HAZARDS if x.id == req.hazardId), fallback_h)
     wo = WorkOrderModel(
         id=f"wo_{uuid.uuid4().hex[:6]}",
         hazardId=req.hazardId,
@@ -896,7 +998,7 @@ async def detect_potholes_mobile(req: Dict[str, Any] = Body(default={})):
 
 @app.post("/api/ai/detections")
 async def ingest_ai_detection(req: Dict[str, Any] = Body(...)):
-    h = DEMO_HAZARDS[0]
+    h = DEMO_HAZARDS[0] if DEMO_HAZARDS else INITIAL_HAZARDS[0]
     return {
         "stable": True,
         "isStable": True,
@@ -1108,9 +1210,25 @@ DEMO_ADMIN_DICT = {
 @app.post("/fleet/auth/login")
 async def fleet_login(payload: Dict[str, Any] = Body(default={})):
     op_code = payload.get("operatorCode") or payload.get("operator_code") or "OP-0042"
+
+    user_id = stable_user_id("fop", op_code)
+    existing = db_manager.get_user(user_id)
+    if existing and existing.get("status") in ("DEACTIVATED", "LOCKED"):
+        return JSONResponse(status_code=403, content={"error": "This fleet operator account has been suspended by the Admin. Contact SafePath support."})
+
     op_data = dict(DEMO_OPERATOR_DICT)
     op_data["operatorCode"] = op_code
     op_data["operator_code"] = op_code
+
+    db_manager.upsert_user({
+        "id": user_id,
+        "displayName": op_data.get("name") or op_code,
+        "email": op_data.get("email") or f"{op_code.lower()}@safepath.ai",
+        "role": "FLEET_OPERATOR",
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+        "lastActiveAt": datetime.now(timezone.utc).isoformat(),
+    })
+
     print(f"[+] Fleet Operator login successful: {op_code}")
     return {
         "operator": op_data,
@@ -1212,7 +1330,14 @@ async def create_fleet_observation(payload: Dict[str, Any] = Body(default={})):
     lng = float(payload.get("longitude") or 80.2707)
     cf = float(payload.get("confidence") or 0.88)
     sev = payload.get("severity") or "CRITICAL"
-    
+
+    # Route this observation to the correct Municipality by its exact GPS —
+    # honor the operator's active-session cityId if present, else resolve
+    # from lat/lng so it always lands with the right city.
+    city_info = resolve_city_for_coords(lat, lng)
+    city_id = payload.get("cityId") or payload.get("city_id") or city_info["cityId"]
+    city_name = payload.get("cityName") or payload.get("city_name") or city_info["cityName"]
+
     # Save directly to safepath.db database!
     new_hazard = {
         "id": hz_id,
@@ -1224,6 +1349,8 @@ async def create_fleet_observation(payload: Dict[str, Any] = Body(default={})):
         "latitude": lat,
         "longitude": lng,
         "location_name": f"Patrol GPS Coordinates: ({lat:.4f}, {lng:.4f})",
+        "city_id": city_id,
+        "city_name": city_name,
         "photo_url": payload.get("imageUrl") or "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=800",
         "ai_confidence": cf,
         "risk_score": 0.92,
@@ -1797,6 +1924,13 @@ async def create_report(payload: Dict[str, Any] = Body(...)):
 
     final_conf = float(ai_conf) if ai_conf is not None else (0.88 if report_status == "REPORTED" else 0.12)
 
+    # Route this report to the correct Municipality by its exact GPS —
+    # honor an explicit cityId from the app if it sent one, else resolve
+    # from lat/lng so it always lands with the right city, never a fixed one.
+    city_info = resolve_city_for_coords(lat, lng)
+    city_id = payload.get("cityId") or payload.get("city_id") or city_info["cityId"]
+    city_name = payload.get("cityName") or payload.get("city_name") or city_info["cityName"]
+
     new_hazard = HazardModel(
         id=new_id,
         title=f"Reported {hz_type.capitalize()} Hazard",
@@ -1809,6 +1943,8 @@ async def create_report(payload: Dict[str, Any] = Body(...)):
         locationName=loc_text,
         locationText=loc_text,
         roadName=loc_text,
+        cityId=city_id,
+        cityName=city_name,
         photoUrl=photo_url,
         aiConfidence=final_conf,
         riskScore=7.5,
@@ -1899,25 +2035,50 @@ async def upload_media(request: Request, file: UploadFile = File(...)):
 
 # ---------------- Municipality App API Routes ----------------
 
-@app.post("/api/municipality/auth/login")
-@app.post("/municipality/auth/login")
-async def municipality_login(payload: Dict[str, Any] = Body(default={})):
-    code = payload.get("municipalityCode") or payload.get("email") or "bbmp-01"
-    officer = {
-        "id": "off_101",
+def _build_municipality_officer(municipality_code: Optional[str], email: Optional[str]) -> Dict[str, Any]:
+    city_id = resolve_city_for_municipality_login(municipality_code, email)
+    meta = CITY_REGISTRY[city_id]
+    current_hazards = _sync_db_hazards()
+    city_hazard_count = len([h for h in current_hazards if h.cityId == city_id])
+    return {
+        "id": f"off_{city_id}",
         "name": "Officer Rajesh Kumar",
-        "email": payload.get("email", "rajesh.kumar@bbmp.gov.in"),
-        "municipalityCode": code,
-        "municipalityName": "Bruhat Bengaluru Mahanagara Palike (BBMP)",
-        "cityId": "c_blr",
-        "cityName": "Bengaluru",
+        "email": email or f"officer@{meta['name'].lower()}.gov.in",
+        "municipalityCode": municipality_code or f"MUN-{meta['code']}",
+        "municipalityName": meta["municipality"],
+        "cityId": city_id,
+        "cityName": meta["name"],
+        "activeHazards": city_hazard_count,
         "role": "MUNICIPALITY_OFFICER",
         "permissions": ["VIEW_HAZARDS", "UPDATE_REPAIRS", "INSPECT_HAZARDS"]
     }
+
+@app.post("/api/municipality/auth/login")
+@app.post("/municipality/auth/login")
+async def municipality_login(payload: Dict[str, Any] = Body(default={})):
+    code = payload.get("municipalityCode")
+    email = payload.get("email")
+    officer = _build_municipality_officer(code, email)
+
+    user_id = stable_user_id("muni", email or code or officer["cityId"])
+    existing = db_manager.get_user(user_id)
+    if existing and existing.get("status") in ("DEACTIVATED", "LOCKED"):
+        return JSONResponse(status_code=403, content={"error": "This municipality account has been suspended by the Admin. Contact your system administrator."})
+    db_manager.upsert_user({
+        "id": user_id,
+        "displayName": officer["name"],
+        "email": officer["email"],
+        "role": "MUNICIPALITY_OFFICER",
+        "cityId": officer["cityId"],
+        "cityName": officer["cityName"],
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+        "lastActiveAt": datetime.now(timezone.utc).isoformat(),
+    })
+
     return {
         "officer": officer,
         "tokens": {
-            "accessToken": "safepath-municipality-access-token-jwt",
+            "accessToken": f"safepath-municipality-access-token-jwt-{officer['cityId']}",
             "refreshToken": "safepath-municipality-refresh-token-jwt",
             "tokenType": "bearer"
         }
@@ -1927,47 +2088,50 @@ async def municipality_login(payload: Dict[str, Any] = Body(default={})):
 @app.get("/municipality/me/")
 @app.get("/api/municipality/me")
 @app.get("/municipality/me")
-async def municipality_me():
-    return {
-        "officer": {
-            "id": "off_101",
-            "name": "Officer Rajesh Kumar",
-            "email": "rajesh.kumar@bbmp.gov.in",
-            "municipalityCode": "bbmp-01",
-            "municipalityName": "Bruhat Bengaluru Mahanagara Palike (BBMP)",
-            "cityId": "c_blr",
-            "cityName": "Bengaluru",
-            "role": "MUNICIPALITY_OFFICER",
-            "permissions": ["VIEW_HAZARDS", "UPDATE_REPAIRS", "INSPECT_HAZARDS"]
-        }
-    }
+async def municipality_me(request: Request):
+    # The access token is tagged with the officer's city at login time
+    # (safepath-municipality-access-token-jwt-<cityId>) — use it so a page
+    # refresh keeps showing the same officer's city instead of resetting.
+    auth = request.headers.get("authorization", "")
+    token_city = auth.rsplit("-", 1)[-1] if "safepath-municipality-access-token-jwt-" in auth else None
+    code = f"MUN-{CITY_REGISTRY.get(token_city, CITY_REGISTRY[DEFAULT_CITY_ID])['code']}" if token_city in CITY_REGISTRY else None
+    return {"officer": _build_municipality_officer(code, None)}
 
 @app.get("/api/municipality/cities/")
 @app.get("/municipality/cities/")
 @app.get("/api/cities")
 async def get_municipality_cities():
+    current_hazards = _sync_db_hazards()
     return [
-        {"id": "c_blr", "name": "Bengaluru", "state": "Karnataka", "code": "BLR", "activeHazards": 142},
-        {"id": "c_chn", "name": "Chennai", "state": "Tamil Nadu", "code": "MAA", "activeHazards": 98},
-        {"id": "c_mum", "name": "Mumbai", "state": "Maharashtra", "code": "BOM", "activeHazards": 210}
+        {
+            "id": city_id,
+            "name": meta["name"],
+            "state": meta["state"],
+            "code": meta["code"],
+            "activeHazards": len([h for h in current_hazards if h.cityId == city_id and h.status != "REJECTED"]),
+        }
+        for city_id, meta in CITY_REGISTRY.items()
     ]
 
 @app.get("/api/municipality/dashboard/")
 @app.get("/municipality/dashboard/")
 @app.get("/api/dashboard")
-async def get_municipality_dashboard(cityId: Optional[str] = Query("c_blr")):
+async def get_municipality_dashboard(cityId: Optional[str] = Query(None)):
     current_hazards = _sync_db_hazards()
-    active_count = len([h for h in current_hazards if h.status in ["REPORTED", "VERIFIED", "IN_PROGRESS"]])
+    city_id = cityId or DEFAULT_CITY_ID
+    city_hazards = [h for h in current_hazards if h.cityId == city_id] if city_id in CITY_REGISTRY else current_hazards
+    active_count = len([h for h in city_hazards if h.status in ["REPORTED", "VERIFIED", "IN_PROGRESS"]])
+    city_name = CITY_REGISTRY.get(city_id, {}).get("name", city_id)
     return {
-        "cityId": cityId,
-        "cityName": "Bengaluru Metro Zone",
+        "cityId": city_id,
+        "cityName": f"{city_name} Zone",
         "activeHazards": active_count,
-        "criticalHazards": len([h for h in current_hazards if h.severity == "CRITICAL"]),
-        "inProgressRepairs": 12,
+        "criticalHazards": len([h for h in city_hazards if h.severity == "CRITICAL"]),
+        "inProgressRepairs": len([h for h in city_hazards if h.status == "UNDER_REPAIR"]),
         "slaBreachedCount": 1,
-        "resolvedThisMonth": 84,
+        "resolvedThisMonth": len([h for h in city_hazards if h.status == "RESOLVED"]),
         "avgResolutionHours": 34.2,
-        "recentHazards": [h.dict() for h in current_hazards[:5]]
+        "recentHazards": [h.dict() for h in city_hazards[:5]]
     }
 
 @app.get("/api/municipality/hazards/")
@@ -1979,6 +2143,11 @@ async def get_municipality_hazards_list(
 ):
     current_hazards = _sync_db_hazards()
     filtered = current_hazards
+    # Every hazard is tagged with the city its GPS coordinates resolved to,
+    # so a Municipality account only ever sees its own city's reports —
+    # exactly like the Admin app, which still sees every city, does not.
+    if cityId and cityId in CITY_REGISTRY:
+        filtered = [h for h in filtered if h.cityId == cityId]
     if status:
         filtered = [h for h in filtered if h.status.lower() == status.lower()]
     if severity:
@@ -2210,6 +2379,67 @@ async def reopen_admin_hazard(hazard_id: str, payload: Dict[str, Any] = Body(def
     hd = found.dict() if hasattr(found, "dict") else dict(found)
     hd["status"] = "REOPENED"
     return hd
+
+@app.get("/api/admin/users")
+@app.get("/admin/users")
+async def list_admin_users(
+    query: Optional[str] = Query(None),
+    role: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    page: int = Query(1),
+    pageSize: int = Query(30)
+):
+    """Real citizen + fleet-operator directory (built from actual logins),
+    giving Admin genuine control over both apps' user bases — not the
+    hardcoded single-row placeholder the generic admin catch-all used to
+    return for any '/admin/*users*' path."""
+    items = db_manager.get_all_users()
+    if role and role != "ALL":
+        items = [u for u in items if u.get("role") == role]
+    if status and status != "ALL":
+        items = [u for u in items if u.get("status") == status]
+    if query and query.strip():
+        q = query.strip().lower()
+        items = [u for u in items if q in (u.get("displayName") or "").lower() or q in (u.get("email") or "").lower()]
+    total = len(items)
+    start = (page - 1) * pageSize
+    page_items = items[start:start + pageSize]
+    return {
+        "items": page_items,
+        "total": total,
+        "page": page,
+        "pageSize": pageSize,
+        "hasMore": start + pageSize < total
+    }
+
+@app.get("/api/admin/users/{user_id}")
+@app.get("/admin/users/{user_id}")
+async def get_admin_user(user_id: str = Path(...)):
+    user = db_manager.get_user(user_id)
+    if not user:
+        return JSONResponse(status_code=404, content={"error": f"User {user_id} not found"})
+    return user
+
+@app.post("/api/admin/users/{user_id}/status")
+@app.post("/admin/users/{user_id}/status")
+async def set_admin_user_status(user_id: str, payload: Dict[str, Any] = Body(...)):
+    new_status = payload.get("status")
+    if new_status not in ("ACTIVE", "DEACTIVATED", "LOCKED", "PENDING"):
+        return JSONResponse(status_code=400, content={"error": "status must be one of ACTIVE, DEACTIVATED, LOCKED, PENDING"})
+    user = db_manager.get_user(user_id)
+    if not user:
+        return JSONResponse(status_code=404, content={"error": f"User {user_id} not found"})
+    db_manager.update_user_status(user_id, new_status)
+    print(f"[+] Admin set user {user_id} ({user.get('email')}) status -> {new_status}")
+    return {**user, "status": new_status}
+
+@app.post("/api/admin/users/{user_id}/reset-access")
+@app.post("/admin/users/{user_id}/reset-access")
+async def reset_admin_user_access(user_id: str = Path(...)):
+    user = db_manager.get_user(user_id)
+    if not user:
+        return JSONResponse(status_code=404, content={"error": f"User {user_id} not found"})
+    return {"status": "success", "message": f"Access reset for {user.get('email')}. They must sign in again."}
 
 @app.api_route("/api/admin/{rest_path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 @app.api_route("/admin/{rest_path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])

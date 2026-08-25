@@ -140,16 +140,18 @@ export class YOLOAIAnalysisService implements IAIAnalysisService {
       let resData: DirectDetectResponse | null = null;
 
       if (base64Image) {
-        const payload = { imageBase64: base64Image, confidenceThreshold: 0.40 };
-        const rawPayload = { image_base64: base64Image, confidence_threshold: 0.40 };
+        const payload = { imageBase64: base64Image, confidenceThreshold: 0.20 };
+        const rawPayload = { image_base64: base64Image, confidence_threshold: 0.20 };
 
+        const aiServerUrl = process.env.EXPO_PUBLIC_AI_SERVER_URL || 'https://safepath-ai-latest.onrender.com';
         const endpoints = [
           () => apiClient.post<DirectDetectResponse>('/detect', payload),
           () => apiClient.post<DirectDetectResponse>('/ai/analyze', payload),
           () => apiClient.post<DirectDetectResponse>('/ai/detect', payload),
+          () => axios.post<DirectDetectResponse>(`${aiServerUrl}/detect`, rawPayload, { timeout: 15000 }).then(r => ({ data: r.data })),
+          () => axios.post<DirectDetectResponse>(`${aiServerUrl}/predict`, rawPayload, { timeout: 15000 }).then(r => ({ data: r.data })),
           () => axios.post<DirectDetectResponse>(`${API_URL}/detect`, rawPayload, { timeout: 15000 }).then(r => ({ data: r.data })),
           () => axios.post<DirectDetectResponse>(`${API_URL}/ai/analyze`, payload, { timeout: 15000 }).then(r => ({ data: r.data })),
-          () => axios.post<DirectDetectResponse>('http://10.0.2.2:8000/api/detect', rawPayload, { timeout: 15000 }).then(r => ({ data: r.data })),
         ];
 
         for (const callFn of endpoints) {

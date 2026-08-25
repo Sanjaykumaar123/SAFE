@@ -17,13 +17,22 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_DEMO_MODE": "true"
+        "EXPO_PUBLIC_API_URL": "https://safepath-backend-latest.onrender.com/api",
+        "EXPO_PUBLIC_AI_SERVER_URL": "https://safepath-ai-latest.onrender.com",
+        "EXPO_PUBLIC_AI_PROVIDER": "yolov8",
+        "EXPO_PUBLIC_DEMO_MODE": "false"
       }
     },
     "production": {
       "autoIncrement": true,
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://safepath-backend-latest.onrender.com/api",
+        "EXPO_PUBLIC_AI_SERVER_URL": "https://safepath-ai-latest.onrender.com",
+        "EXPO_PUBLIC_AI_PROVIDER": "yolov8",
+        "EXPO_PUBLIC_DEMO_MODE": "false"
       }
     }
   },

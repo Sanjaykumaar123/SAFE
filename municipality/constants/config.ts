@@ -3,19 +3,12 @@ import Constants from 'expo-constants';
 function getResolvedApiUrl(): string {
   try {
     const envUrl = process.env.EXPO_PUBLIC_API_URL;
-    if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
-      return envUrl;
+    if (envUrl && envUrl.trim().length > 0 && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+      return envUrl.trim();
     }
-    const hostUri = Constants.expoConfig?.hostUri || Constants.manifest2?.extra?.expoGo?.debuggerHost || (Constants as any)?.manifest?.debuggerHost;
-    if (hostUri) {
-      const hostIp = hostUri.split(':')[0];
-      if (hostIp) {
-        return `http://${hostIp}:8000/api`;
-      }
-    }
-    return envUrl ? envUrl.replace('localhost', '10.0.2.2').replace('127.0.0.1', '10.0.2.2') : 'http://10.0.2.2:8000/api';
+    return envUrl && envUrl.trim().length > 0 ? envUrl.trim() : 'https://safepath-backend-latest.onrender.com/api';
   } catch {
-    return process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:8000/api';
+    return process.env.EXPO_PUBLIC_API_URL ?? 'https://safepath-backend-latest.onrender.com/api';
   }
 }
 
@@ -25,7 +18,7 @@ export const API_URL = getResolvedApiUrl();
 export const DEMO_MODE = process.env.EXPO_PUBLIC_DEMO_MODE === 'true';
 export const MAP_KEY = process.env.EXPO_PUBLIC_MAP_KEY ?? '';
 
-export const REQUEST_TIMEOUT_MS = 15000;
+export const REQUEST_TIMEOUT_MS = 30000;
 
 /** Dashboard/notification polling cadence (section 73 — MVP uses polling,
  * not a hardcoded aggressive refetch). */

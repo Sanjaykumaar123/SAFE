@@ -20,17 +20,24 @@ export default function LoginScreen() {
   const {
     control,
     handleSubmit,
+    setValue,
     formState: { errors },
     setError,
-  } = useForm<LoginFormValues>({ resolver: zodResolver(loginSchema), defaultValues: { identifier: '', password: '' } });
+  } = useForm<LoginFormValues>({ resolver: zodResolver(loginSchema), defaultValues: { identifier: 'demo.citizen@safepath.ai', password: 'SafePath@123' } });
 
   async function onSubmit(values: LoginFormValues) {
     try {
       await login(values);
       router.replace('/(tabs)/home');
-    } catch {
-      setError('password', { message: 'Incorrect email/mobile or password.' });
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail ?? err?.message ?? 'Incorrect email/mobile or password.';
+      setError('password', { message: msg });
     }
+  }
+
+  function handleFillDemo() {
+    setValue('identifier', 'demo.citizen@safepath.ai');
+    setValue('password', 'SafePath@123');
   }
 
   async function handleGuest() {
@@ -87,6 +94,7 @@ export default function LoginScreen() {
             </Link>
 
             <Button label="Log In" onPress={handleSubmit(onSubmit)} loading={isSubmitting} size="lg" />
+            <Button label="Auto-Fill Demo Credentials" onPress={handleFillDemo} variant="outline" size="md" />
           </View>
 
           <View style={styles.footer}>

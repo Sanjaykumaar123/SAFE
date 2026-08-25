@@ -3,19 +3,12 @@ import Constants from 'expo-constants';
 function getResolvedApiUrl(): string {
   try {
     const envUrl = process.env.EXPO_PUBLIC_API_URL;
-    if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
-      return envUrl;
+    if (envUrl && envUrl.trim().length > 0 && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+      return envUrl.trim();
     }
-    const hostUri = Constants.expoConfig?.hostUri || Constants.manifest2?.extra?.expoGo?.debuggerHost || (Constants as any)?.manifest?.debuggerHost;
-    if (hostUri) {
-      const hostIp = hostUri.split(':')[0];
-      if (hostIp) {
-        return `http://${hostIp}:8000/api`;
-      }
-    }
-    return envUrl ?? 'http://10.0.2.2:8000/api';
+    return envUrl && envUrl.trim().length > 0 ? envUrl.trim() : 'https://safepath-backend-latest.onrender.com/api';
   } catch {
-    return process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:8000/api';
+    return process.env.EXPO_PUBLIC_API_URL ?? 'https://safepath-backend-latest.onrender.com/api';
   }
 }
 
@@ -23,7 +16,7 @@ function getResolvedApiUrl(): string {
  * `process.env.EXPO_PUBLIC_*` directly (section 40/54). */
 export const API_URL = getResolvedApiUrl();
 export const AI_PROVIDER = (process.env.EXPO_PUBLIC_AI_PROVIDER ?? 'yolov8') as 'mock' | 'yolov8';
-export const DEMO_MODE = process.env.EXPO_PUBLIC_DEMO_MODE !== 'false';
+export const DEMO_MODE = process.env.EXPO_PUBLIC_DEMO_MODE === 'true';
 
 /** OSRM-compatible routing server used by the Safe Route feature
  * (`services/routing/osrmApi.ts`). Defaults to the public OSRM demo
@@ -34,7 +27,7 @@ export const ROUTING_BASE_URL = process.env.EXPO_PUBLIC_ROUTING_URL ?? 'https://
 
 export const DEFAULT_CITY = 'Chennai';
 export const DEFAULT_RADIUS_METERS = 5000;
-export const REQUEST_TIMEOUT_MS = 15000;
+export const REQUEST_TIMEOUT_MS = 30000;
 
 /** Fallback map center used only until the device's live location resolves
  * (first launch, permission still pending, indoors with a slow GPS fix) —

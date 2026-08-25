@@ -27,5 +27,34 @@ services:
       timeout: 5s
       retries: 10
 
+  backend:
+    build:
+      context: ./backend/api
+      dockerfile: Dockerfile
+    container_name: safepath-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://safepath:safepath@db:5432/safepath}
+      DATABASE_URL_SYNC: ${DATABASE_URL_SYNC:-postgresql+psycopg://safepath:safepath@db:5432/safepath}
+      JWT_SECRET: change-me-to-a-long-random-string-in-production
+      AI_PROVIDER: mock
+      AI_SERVER_URL: http://ai_model:8001
+    depends_on:
+      db:
+        condition: service_healthy
+
+  ai_model:
+    build:
+      context: ../ai_model
+      dockerfile: Dockerfile
+    container_name: safepath-ai
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+
 volumes:
   safepath_pgdata:
+
+

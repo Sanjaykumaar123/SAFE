@@ -40,6 +40,8 @@ class SafePathDatabase:
                         latitude REAL,
                         longitude REAL,
                         location_name TEXT,
+                        city_id TEXT,
+                        city_name TEXT,
                         photo_url TEXT,
                         ai_confidence REAL,
                         risk_score REAL,
@@ -48,6 +50,14 @@ class SafePathDatabase:
                         bbox_json TEXT
                     )
                 """)
+                # Older DB files predate the city columns — add them in place so
+                # existing installs pick up city-based routing without a wipe.
+                cursor.execute("PRAGMA table_info(hazards)")
+                existing_cols = {row[1] for row in cursor.fetchall()}
+                if "city_id" not in existing_cols:
+                    cursor.execute("ALTER TABLE hazards ADD COLUMN city_id TEXT")
+                if "city_name" not in existing_cols:
+                    cursor.execute("ALTER TABLE hazards ADD COLUMN city_name TEXT")
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS work_orders (
                         id TEXT PRIMARY KEY,
@@ -60,6 +70,19 @@ class SafePathDatabase:
                         created_at TEXT,
                         estimated_completion TEXT,
                         actual_completion TEXT
+                    )
+                """)
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        id TEXT PRIMARY KEY,
+                        display_name TEXT,
+                        email TEXT,
+                        role TEXT,
+                        status TEXT,
+                        city_id TEXT,
+                        city_name TEXT,
+                        created_at TEXT,
+                        last_active_at TEXT
                     )
                 """)
                 conn.commit()
@@ -87,6 +110,10 @@ class SafePathDatabase:
                         "longitude": r["longitude"],
                         "locationName": r["location_name"],
                         "location_name": r["location_name"],
+                        "cityId": r["city_id"],
+                        "city_id": r["city_id"],
+                        "cityName": r["city_name"],
+                        "city_name": r["city_name"],
                         "photoUrl": r["photo_url"],
                         "photo_url": r["photo_url"],
                         "aiConfidence": r["ai_confidence"],
@@ -112,9 +139,9 @@ class SafePathDatabase:
                 cursor.execute("""
                     INSERT OR REPLACE INTO hazards (
                         id, title, description, type, severity, status,
-                        latitude, longitude, location_name, photo_url,
+                        latitude, longitude, location_name, city_id, city_name, photo_url,
                         ai_confidence, risk_score, created_at, is_demo_data, bbox_json
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     h.get("id"),
                     h.get("title"),
@@ -125,6 +152,8 @@ class SafePathDatabase:
                     h.get("latitude"),
                     h.get("longitude"),
                     h.get("locationName") or h.get("location_name"),
+                    h.get("cityId") or h.get("city_id"),
+                    h.get("cityName") or h.get("city_name"),
                     h.get("photoUrl") or h.get("photo_url"),
                     h.get("aiConfidence") or h.get("ai_confidence"),
                     h.get("riskScore") or h.get("risk_score"),
@@ -220,5 +249,75 @@ class SafePathDatabase:
                 conn.commit()
         except Exception as e:
             logger.error(f"Failed to update work order status for {wo_id}: {e}")
+
+    # ---------------- Citizen / Fleet Operator User Directory ----------------
+    # Backs the Admin app's citizen + fleet-operator management screens
+    # (list/suspend/reactivate). Rows are upserted on every login so the
+    # directory reflects real accounts instead of demo placeholders.
+
+    def upsert_user(self, u: Dict[str, Any]) -> Dict[str, Any]:
+        """Insert a user row if new, otherwise refresh name/city/last-active
+        while preserving whatever status an admin already set (so a login
+        can't silently un-suspend a deactivated account)."""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT status, created_at FROM users WHERE id = ?", (u["id"],))
+                existing = cursor.fetchone()
+                status = existing["status"] if existing else (u.get("status") or "ACTIVE")
+                created_at = existing["created_at"] if existing else u.get("createdAt")
+                cursor.execute("""
+                    INSERT OR REPLACE INTO users (
+                        id, display_name, email, role, status, city_id, city_name, created_at, last_active_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    u["id"],
+                    u.get("displayName"),
+                    u.get("email"),
+                    u.get("role"),
+                    status,
+                    u.get("cityId"),
+                    u.get("cityName"),
+                    created_at,
+                    u.get("lastActiveAt"),
+                ))
+                conn.commit()
+                return {**u, "status": status, "createdAt": created_at}
+        except Exception as e:
+            logger.error(f"Failed to upsert user {u.get('id')}: {e}")
+            return u
+
+    def get_all_users(self) -> List[Dict[str, Any]]:
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM users ORDER BY created_at DESC")
+                rows = cursor.fetchall()
+                return [{
+                    "id": r["id"],
+                    "displayName": r["display_name"],
+                    "email": r["email"],
+                    "role": r["role"],
+                    "status": r["status"],
+                    "cityId": r["city_id"],
+                    "cityName": r["city_name"],
+                    "createdAt": r["created_at"],
+                    "lastActiveAt": r["last_active_at"],
+                } for r in rows]
+        except Exception as e:
+            logger.error(f"Error reading users from DB: {e}")
+            return []
+
+    def get_user(self, user_id: str) -> Optional[Dict[str, Any]]:
+        return next((u for u in self.get_all_users() if u["id"] == user_id), None)
+
+    def update_user_status(self, user_id: str, new_status: str):
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("UPDATE users SET status = ? WHERE id = ?", (new_status, user_id))
+                conn.commit()
+        except Exception as e:
+            logger.error(f"Failed to update user status for {user_id}: {e}")
 
 db_manager = SafePathDatabase()

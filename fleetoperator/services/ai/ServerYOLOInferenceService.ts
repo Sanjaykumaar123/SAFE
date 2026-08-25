@@ -35,7 +35,6 @@ export class ServerYOLOInferenceService implements IAIInferenceService {
 
   async analyze(frame: FrameMeta): Promise<AIInferenceResult> {
     const frameTimestamp = new Date().toISOString();
-    const now = Date.now();
 
     try {
       let base64Image = '';
@@ -53,13 +52,14 @@ export class ServerYOLOInferenceService implements IAIInferenceService {
       let resData: DirectDetectResponse | null = null;
 
       if (base64Image) {
+        const aiServerUrl = process.env.EXPO_PUBLIC_AI_SERVER_URL || 'https://safepath-ai-latest.onrender.com';
         const endpoints = [
           () => apiClient.post<DirectDetectResponse>('/detect', { imageBase64: base64Image, confidenceThreshold: 0.20 }, { timeout: 3500 }),
           () => apiClient.post<DirectDetectResponse>('/ai/detect', { imageBase64: base64Image, confidenceThreshold: 0.20 }, { timeout: 3500 }),
+          () => axios.post<DirectDetectResponse>(`${aiServerUrl}/detect`, { imageBase64: base64Image, confidenceThreshold: 0.20 }, { timeout: 3500 }),
+          () => axios.post<DirectDetectResponse>(`${aiServerUrl}/predict`, { imageBase64: base64Image, confidenceThreshold: 0.20 }, { timeout: 3500 }),
           () => apiClient.post<DirectDetectResponse>('/v1/ai/detect', { imageBase64: base64Image, confidenceThreshold: 0.20 }, { timeout: 3500 }),
           () => apiClient.post<DirectDetectResponse>('/v1/ai/analyze', { imageBase64: base64Image }, { timeout: 3500 }),
-          () => axios.post<DirectDetectResponse>('http://10.0.2.2:8000/detect', { imageBase64: base64Image, confidenceThreshold: 0.20 }, { timeout: 3500 }),
-          () => axios.post<DirectDetectResponse>('http://10.0.2.2:8001/detect', { imageBase64: base64Image, confidenceThreshold: 0.20 }, { timeout: 3500 }),
         ];
 
         for (const callFn of endpoints) {
@@ -133,36 +133,6 @@ export class ServerYOLOInferenceService implements IAIInferenceService {
             modelVersion: this.modelVersion,
           };
         }
-      }
-
-      // Approach curve fallback: provides seamless live pothole detection during camera monitoring
-      // even when device camera frame read or network connection is fluctuating.
-      const HOTSPOT_PERIOD_MS = 5000;
-      const HOTSPOT_DURATION_MS = 2400;
-      const phase = now % HOTSPOT_PERIOD_MS;
-
-      if (phase <= HOTSPOT_DURATION_MS) {
-        const progress = phase / HOTSPOT_DURATION_MS;
-        const curve = 1 - Math.abs(progress - 0.5) * 2;
-        const confidence = Math.round((0.68 + curve * 0.27) * 100) / 100;
-        const width = 0.22 + curve * 0.14;
-        const height = 0.16 + curve * 0.12;
-
-        return {
-          detected: true,
-          hazardType: 'POTHOLE',
-          confidence,
-          severity: confidence > 0.82 ? 'CRITICAL' : 'MEDIUM',
-          boundingBox: {
-            x: 0.30 + Math.sin(now / 800) * 0.03,
-            y: 0.42 + Math.cos(now / 600) * 0.02,
-            width,
-            height,
-          },
-          frameTimestamp,
-          modelName: this.modelName,
-          modelVersion: this.modelVersion,
-        };
       }
 
       return {
