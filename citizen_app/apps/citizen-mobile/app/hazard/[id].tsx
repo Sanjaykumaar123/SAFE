@@ -60,9 +60,9 @@ export default function HazardDetailScreen() {
                 <StatusBadge status={hazard.status} />
               </View>
               <Text style={styles.location}>{hazard.locationText}</Text>
-              {hazard.media.length > 0 ? (
+              {(hazard.media?.length ?? 0) > 0 ? (
                 <Pressable onPress={() => router.push(`/hazard/evidence?id=${hazard.id}`)} accessibilityRole="button">
-                  <Text style={styles.evidenceLink}>View all evidence ({hazard.media.length})</Text>
+                  <Text style={styles.evidenceLink}>View all evidence ({hazard.media?.length})</Text>
                 </Pressable>
               ) : null}
 
