@@ -42,6 +42,7 @@ class Settings(BaseSettings):
 
     # --- AI ---
     AI_PROVIDER: Literal["mock", "yolov8"] = "yolov8"
+    AI_SERVER_URL: str = "http://localhost:8001"
     # Path to a YOLO .pt checkpoint, relative to backend/api/ (or absolute).
     AI_MODEL_PATH: str = "app/ml_models/pothole_v2_final.pt"
     # auto | cpu | 0 (CUDA device index) — "auto" picks CUDA if available, else CPU.

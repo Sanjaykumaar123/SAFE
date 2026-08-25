@@ -3,12 +3,14 @@ Real YOLO pothole-detection service for SafePath AI backend.
 Loads fine-tuned YOLO pothole detection weights (`pothole_v2_final.pt` / `best.pt`)
 and runs inference in-process via `ultralytics`.
 """
+import base64
 import io
 import logging
 import time
 from functools import lru_cache
 from pathlib import Path
 
+import httpx
 from PIL import Image, ImageOps
 
 from app.core.config import settings
@@ -88,11 +90,82 @@ def _severity_for_box(area_pct: float, near_bottom: bool) -> Severity:
 class YOLOAIAnalysisService(AIAnalysisService):
     async def analyze(self, *, image_bytes: bytes, filename: str) -> AIAnalysisResult:
         start = time.perf_counter()
-        model, device, model_version = _get_model_and_device()
 
         raw_img = Image.open(io.BytesIO(image_bytes))
         image = ImageOps.exif_transpose(raw_img).convert("RGB")
         width, height = image.size
+
+        # 1. Try remote AI server microservice API URL (e.g. http://localhost:8001/api/detect)
+        ai_server_url = getattr(settings, "AI_SERVER_URL", "http://localhost:8001")
+        if ai_server_url:
+            try:
+                b64_str = base64.b64encode(image_bytes).decode("utf-8")
+                async with httpx.AsyncClient(timeout=8.0) as client:
+                    resp = await client.post(
+                        f"{ai_server_url.rstrip('/')}/api/detect",
+                        json={
+                            "imageBase64": b64_str,
+                            "confidenceThreshold": settings.AI_DETECTION_CONFIDENCE,
+                        },
+                    )
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        processing_time_ms = int((time.perf_counter() - start) * 1000)
+                        raw_dets = data.get("detections") or []
+                        
+                        detections: list[AIDetectionItem] = []
+                        for d in raw_dets:
+                            bbox = d.get("bbox") or d.get("normalized_bbox") or d.get("normalizedBbox") or {}
+                            if isinstance(bbox, dict):
+                                bx = float(bbox.get("x") or bbox.get("x1") or 0.0)
+                                by = float(bbox.get("y") or bbox.get("y1") or 0.0)
+                                bw = float(bbox.get("width") or bbox.get("w") or 0.3)
+                                bh = float(bbox.get("height") or bbox.get("h") or 0.3)
+                            else:
+                                bx, by, bw, bh = 0.1, 0.1, 0.3, 0.3
+
+                            norm_box = BoundingBox(
+                                x=max(0.0, min(1.0, bx)),
+                                y=max(0.0, min(1.0, by)),
+                                width=max(0.0, min(1.0, bw)),
+                                height=max(0.0, min(1.0, bh)),
+                            )
+                            conf_val = float(d.get("confidence") or d.get("conf") or 0.85)
+                            detections.append(
+                                AIDetectionItem(
+                                    class_id=0,
+                                    class_name=str(d.get("class") or d.get("class_name") or "pothole").lower(),
+                                    confidence=round(conf_val, 4),
+                                    bbox=BoundingBoxXYXY(
+                                        x1=round(bx * width, 1),
+                                        y1=round(by * height, 1),
+                                        x2=round((bx + bw) * width, 1),
+                                        y2=round((by + bh) * height, 1),
+                                    ),
+                                    normalized_bbox=norm_box,
+                                )
+                            )
+
+                        detected = bool(data.get("detected") or len(detections) > 0)
+                        top_conf = float(data.get("confidence") or (detections[0].confidence if detections else 0.0))
+                        top_sev_raw = str(data.get("severity") or "MEDIUM").upper()
+                        top_sev = Severity.CRITICAL if "CRITICAL" in top_sev_raw or "HIGH" in top_sev_raw else Severity.MEDIUM
+
+                        return AIAnalysisResult(
+                            success=True,
+                            detected=detected,
+                            hazard_type=HazardType.POTHOLE if detected else None,
+                            confidence=top_conf,
+                            severity=top_sev if detected else None,
+                            bounding_box=detections[0].normalized_bbox if detections else None,
+                            processing_time_ms=processing_time_ms,
+                            model_version="safepath-ai-server-v2 (http://localhost:8001)",
+                            image_width=width,
+                            image_height=height,
+                            detections=detections,
+                        )
+            except Exception as ex:
+                logger.warning(f"AI server API endpoint ({ai_server_url}) unavailable: {ex}. Falling back to in-process YOLO.")
 
         results = model.predict(
             source=image,
