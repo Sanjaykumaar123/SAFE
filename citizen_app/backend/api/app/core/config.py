@@ -42,6 +42,7 @@ class Settings(BaseSettings):
 
     # --- AI ---
     AI_PROVIDER: Literal["mock", "yolov8"] = "yolov8"
+    # Microservice URL of the AI Model API Server (e.g., http://localhost:8001 or deployed AI endpoint)
     AI_SERVER_URL: str = "http://localhost:8001"
     # Path to a YOLO .pt checkpoint, relative to backend/api/ (or absolute).
     AI_MODEL_PATH: str = "app/ml_models/pothole_v2_final.pt"
