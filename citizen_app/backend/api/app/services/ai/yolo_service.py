@@ -117,39 +117,62 @@ class YOLOAIAnalysisService(AIAnalysisService):
                         for d in raw_dets:
                             bbox = d.get("bbox") or d.get("normalized_bbox") or d.get("normalizedBbox") or {}
                             if isinstance(bbox, dict):
-                                bx = float(bbox.get("x") or bbox.get("x1") or 0.0)
-                                by = float(bbox.get("y") or bbox.get("y1") or 0.0)
-                                bw = float(bbox.get("width") or bbox.get("w") or 0.3)
-                                bh = float(bbox.get("height") or bbox.get("h") or 0.3)
+                                if "x1" in bbox and "x2" in bbox:
+                                    x1_val = float(bbox["x1"])
+                                    y1_val = float(bbox["y1"])
+                                    x2_val = float(bbox["x2"])
+                                    y2_val = float(bbox["y2"])
+                                    if x1_val <= 1.0 and x2_val <= 1.0 and y1_val <= 1.0 and y2_val <= 1.0:
+                                        bx = x1_val
+                                        by = y1_val
+                                        bw = max(0.01, x2_val - x1_val)
+                                        bh = max(0.01, y2_val - y1_val)
+                                    else:
+                                        bx = x1_val / width
+                                        by = y1_val / height
+                                        bw = max(0.01, (x2_val - x1_val) / width)
+                                        bh = max(0.01, (y2_val - y1_val) / height)
+                                else:
+                                    bx = float(bbox.get("x") or 0.1)
+                                    by = float(bbox.get("y") or 0.1)
+                                    bw = float(bbox.get("width") or bbox.get("w") or 0.2)
+                                    bh = float(bbox.get("height") or bbox.get("h") or 0.2)
                             else:
-                                bx, by, bw, bh = 0.1, 0.1, 0.3, 0.3
+                                bx, by, bw, bh = 0.1, 0.1, 0.2, 0.2
 
                             norm_box = BoundingBox(
-                                x=max(0.0, min(1.0, bx)),
-                                y=max(0.0, min(1.0, by)),
-                                width=max(0.0, min(1.0, bw)),
-                                height=max(0.0, min(1.0, bh)),
+                                x=max(0.0, min(1.0, round(bx, 4))),
+                                y=max(0.0, min(1.0, round(by, 4))),
+                                width=max(0.0, min(1.0, round(bw, 4))),
+                                height=max(0.0, min(1.0, round(bh, 4))),
                             )
-                            conf_val = float(d.get("confidence") or d.get("conf") or 0.85)
+                            conf_val = float(d.get("confidence") or d.get("aiConfidence") or d.get("conf") or 0.85)
+                            sev_str = str(d.get("severity") or d.get("severityLevel") or "MEDIUM").upper()
+                            sev_enum = Severity.CRITICAL if ("CRITICAL" in sev_str or "SEVERE" in sev_str) else (
+                                Severity.HIGH if "HIGH" in sev_str else (
+                                    Severity.LOW if "LOW" in sev_str else Severity.MEDIUM
+                                )
+                            )
+
                             detections.append(
                                 AIDetectionItem(
                                     class_id=0,
                                     class_name=str(d.get("class") or d.get("class_name") or "pothole").lower(),
                                     confidence=round(conf_val, 4),
                                     bbox=BoundingBoxXYXY(
-                                        x1=round(bx * width, 1),
-                                        y1=round(by * height, 1),
-                                        x2=round((bx + bw) * width, 1),
-                                        y2=round((by + bh) * height, 1),
+                                        x1=round(norm_box.x * width, 1),
+                                        y1=round(norm_box.y * height, 1),
+                                        x2=round((norm_box.x + norm_box.width) * width, 1),
+                                        y2=round((norm_box.y + norm_box.height) * height, 1),
                                     ),
                                     normalized_bbox=norm_box,
                                 )
                             )
 
                         detected = bool(data.get("detected") or len(detections) > 0)
-                        top_conf = float(data.get("confidence") or (detections[0].confidence if detections else 0.0))
-                        top_sev_raw = str(data.get("severity") or "MEDIUM").upper()
-                        top_sev = Severity.CRITICAL if "CRITICAL" in top_sev_raw or "HIGH" in top_sev_raw else Severity.MEDIUM
+                        top_det = detections[0] if detections else None
+                        top_conf = float(data.get("confidence") or (top_det.confidence if top_det else 0.0))
+                        top_sev = Severity.CRITICAL if top_conf > 0.75 else Severity.MEDIUM
 
                         return AIAnalysisResult(
                             success=True,
