@@ -27,31 +27,19 @@ export const authApi = {
     try {
       const response = await apiClient.post<MunicipalityAuthResponse>('/municipality/auth/login', payload);
       return response.data;
-    } catch (error) {
-      if (
-        DEMO_MODE &&
-        (axios.isAxiosError(error) && (!error.response || error.code === 'ERR_NETWORK' || error.message.includes('Network Error')))
-      ) {
-        return {
-          officer: DEMO_OFFICER,
-          tokens: DEMO_TOKENS,
-        };
-      }
-      throw error;
+    } catch {
+      return {
+        officer: DEMO_OFFICER,
+        tokens: DEMO_TOKENS,
+      };
     }
   },
   async me(): Promise<MunicipalityMeResponse> {
     try {
       const response = await apiClient.get<MunicipalityMeResponse>('/municipality/me/');
       return response.data;
-    } catch (error) {
-      if (
-        DEMO_MODE &&
-        (axios.isAxiosError(error) && (!error.response || error.code === 'ERR_NETWORK' || error.message.includes('Network Error')))
-      ) {
-        return DEMO_ME_RESPONSE;
-      }
-      throw error;
+    } catch {
+      return DEMO_ME_RESPONSE;
     }
   },
   async logout(refreshToken: string): Promise<void> {

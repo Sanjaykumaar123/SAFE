@@ -47,7 +47,8 @@ export default function ActiveMonitoringScreen() {
   const initialParams = resolveMonitoringParams(null);
   const trackerRef = useRef(new DetectionTracker(initialParams.trackingConfirmCount, initialParams.trackingWindowMs));
   const isAnalyzingRef = useRef(false);
-  const lastPhotoTimeRef = useRef(0);
+  const lastInferenceTimeRef = useRef(0);
+  const lastEvidenceTimeRef = useRef(0);
 
   const [liveResult, setLiveResult] = useState<AIInferenceResult | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -76,20 +77,19 @@ export default function ActiveMonitoringScreen() {
   }, [startedAt]);
 
   useEffect(() => {
+    if (!startedAt) return;
     const interval = setInterval(() => tickDistance(), 1000);
     return () => clearInterval(interval);
-  }, [tickDistance]);
+  }, [startedAt, tickDistance]);
 
   const captureEvidenceAndRecord = useCallback(
     async (finalized: FinalizedDetection) => {
       let imageUri: string | null = null;
       const now = Date.now();
-      // Only capture a single still photo when a pothole is finalized,
-      // throttled so camera preview never freezes repeatedly.
-      if (now - lastPhotoTimeRef.current > 3000) {
-        lastPhotoTimeRef.current = now;
+      if (now - lastEvidenceTimeRef.current > 3000) {
+        lastEvidenceTimeRef.current = now;
         try {
-          const photo = await cameraRef.current?.takePictureAsync({ quality: 0.5, skipProcessing: true, shutterSound: false });
+          const photo = await cameraRef.current?.takePictureAsync({ quality: 0.5, shutterSound: false });
           imageUri = photo?.uri ?? null;
         } catch {
           imageUri = null;
@@ -109,30 +109,30 @@ export default function ActiveMonitoringScreen() {
     try {
       let frameUri = '';
       const now = Date.now();
-      if (cameraRef.current && now - lastPhotoTimeRef.current > 400) {
-        lastPhotoTimeRef.current = now;
-        try {
-          const photo = await cameraRef.current.takePictureAsync({
-            quality: 0.15,
-            skipProcessing: true,
-            shutterSound: false,
-          });
-          if (photo?.uri) {
-            frameUri = photo.uri;
+      if (now - lastInferenceTimeRef.current > 250) {
+        lastInferenceTimeRef.current = now;
+        if (cameraRef.current) {
+          try {
+            const photo = await cameraRef.current.takePictureAsync({
+              quality: 0.15,
+              shutterSound: false,
+            });
+            if (photo?.uri) {
+              frameUri = photo.uri;
+            }
+          } catch {
+            frameUri = '';
           }
-        } catch {
-          frameUri = '';
         }
       }
 
-      if (frameUri) {
-        const result = await service.analyze({ uri: frameUri });
-        setLiveResult(result.detected ? result : null);
+      const frameToAnalyze = frameUri || 'camera-frame-live';
+      const result = await service.analyze({ uri: frameToAnalyze });
+      setLiveResult(result.detected ? result : null);
 
-        const finalized = trackerRef.current.feed(result);
-        if (finalized) {
-          await captureEvidenceAndRecord(finalized);
-        }
+      const finalized = trackerRef.current.feed(result);
+      if (finalized) {
+        await captureEvidenceAndRecord(finalized);
       }
     } catch {
       // Graceful error recovery

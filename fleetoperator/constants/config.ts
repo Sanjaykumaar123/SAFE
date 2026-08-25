@@ -1,7 +1,28 @@
+import Constants from 'expo-constants';
+
+function getResolvedApiUrl(): string {
+  try {
+    const envUrl = process.env.EXPO_PUBLIC_API_URL;
+    if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+      return envUrl;
+    }
+    const hostUri = Constants.expoConfig?.hostUri || Constants.manifest2?.extra?.expoGo?.debuggerHost || (Constants as any)?.manifest?.debuggerHost;
+    if (hostUri) {
+      const hostIp = hostUri.split(':')[0];
+      if (hostIp) {
+        return `http://${hostIp}:8000/api`;
+      }
+    }
+    return envUrl ? envUrl.replace('localhost', '10.0.2.2').replace('127.0.0.1', '10.0.2.2') : 'http://10.0.2.2:8000/api';
+  } catch {
+    return process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:8000/api';
+  }
+}
+
 /** Centralized environment/config reads — nothing else touches
  * `process.env.EXPO_PUBLIC_*` directly. */
-export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api';
-export const DEMO_MODE = process.env.EXPO_PUBLIC_DEMO_MODE !== 'false';
+export const API_URL = getResolvedApiUrl();
+export const DEMO_MODE = process.env.EXPO_PUBLIC_DEMO_MODE === 'true';
 export const MAP_KEY = process.env.EXPO_PUBLIC_MAP_KEY ?? '';
 
 export const REQUEST_TIMEOUT_MS = 15000;
@@ -10,7 +31,7 @@ export const REQUEST_TIMEOUT_MS = 15000;
  * hands out. "ondevice" throws until a real native model is wired up (see
  * DEFERRED.md). */
 export type AIMode = 'mock' | 'server' | 'ondevice';
-export const AI_MODE: AIMode = (process.env.EXPO_PUBLIC_AI_MODE as AIMode) ?? 'mock';
+export const AI_MODE: AIMode = (process.env.EXPO_PUBLIC_AI_MODE as AIMode) ?? 'server';
 
 /** §09 — inferences per second while monitoring is active, at low speed
  * (see `resolveMonitoringParams` below for the speed-adaptive schedule

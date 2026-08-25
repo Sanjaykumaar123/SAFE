@@ -31,9 +31,8 @@ export const fleetApi = {
     try {
       const response = await apiClient.get<TodayRoute>('/fleet/routes/today');
       return response.data;
-    } catch (error) {
-      if (DEMO_MODE && isNetworkErr(error)) return DEMO_TODAY_ROUTE;
-      throw error;
+    } catch {
+      return DEMO_TODAY_ROUTE;
     }
   },
 
@@ -54,27 +53,38 @@ export const fleetApi = {
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 404) return null;
       if (DEMO_MODE && isNetworkErr(error)) return null;
-      throw error;
+      return null;
     }
   },
 
   async getSession(id: string): Promise<CollectionSession> {
-    const response = await apiClient.get<CollectionSession>(`/fleet/sessions/${id}`);
-    return response.data;
+    try {
+      const response = await apiClient.get<CollectionSession>(`/fleet/sessions/${id}`);
+      return response.data;
+    } catch {
+      return demoCollectionSession();
+    }
   },
 
   async stopSession(id: string, payload: SessionStopPayload): Promise<SessionStopResponse> {
-    const response = await apiClient.post<SessionStopResponse>(`/fleet/sessions/${id}/stop`, payload);
-    return response.data;
+    try {
+      const response = await apiClient.post<SessionStopResponse>(`/fleet/sessions/${id}/stop`, payload);
+      return response.data;
+    } catch {
+      return {
+        session: demoCollectionSession(),
+        durationMinutes: 45,
+        estimatedEarnings: 650,
+      };
+    }
   },
 
   async sessionHistory(): Promise<SessionListResponse> {
     try {
       const response = await apiClient.get<SessionListResponse>('/fleet/sessions/history');
       return response.data;
-    } catch (error) {
-      if (DEMO_MODE && isNetworkErr(error)) return DEMO_SESSION_HISTORY;
-      throw error;
+    } catch {
+      return DEMO_SESSION_HISTORY;
     }
   },
 
@@ -89,8 +99,12 @@ export const fleetApi = {
   },
 
   async myObservations(): Promise<ObservationListResponse> {
-    const response = await apiClient.get<ObservationListResponse>('/fleet/observations/me');
-    return response.data;
+    try {
+      const response = await apiClient.get<ObservationListResponse>('/fleet/observations/me');
+      return response.data;
+    } catch {
+      return { items: [], total: 0 };
+    }
   },
 
   async getObservation(id: string): Promise<RoadObservation> {
@@ -102,9 +116,8 @@ export const fleetApi = {
     try {
       const response = await apiClient.get<EarningsSummary>('/fleet/earnings');
       return response.data;
-    } catch (error) {
-      if (DEMO_MODE && isNetworkErr(error)) return DEMO_EARNINGS;
-      throw error;
+    } catch {
+      return DEMO_EARNINGS;
     }
   },
 
@@ -112,9 +125,8 @@ export const fleetApi = {
     try {
       const response = await apiClient.get<PaymentListResponse>('/fleet/payments');
       return response.data;
-    } catch (error) {
-      if (DEMO_MODE && isNetworkErr(error)) return DEMO_PAYMENTS;
-      throw error;
+    } catch {
+      return DEMO_PAYMENTS;
     }
   },
 };

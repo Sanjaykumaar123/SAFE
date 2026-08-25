@@ -1294,6 +1294,72 @@ async def get_fleet_earnings():
         }
     }
 
+@app.get("/api/fleet/payments")
+@app.get("/fleet/payments")
+async def get_fleet_payments():
+    return {
+        "items": [
+            {
+                "id": "pay-101",
+                "sessionId": "sess-101",
+                "operatorId": "op-1",
+                "coverageAmount": 400.0,
+                "observationAmount": 200.0,
+                "qualityBonusAmount": 50.0,
+                "totalAmount": 650.0,
+                "status": "PAID",
+                "computedAt": "2026-08-25T08:00:00Z",
+                "paidAt": "2026-08-25T09:00:00Z"
+            },
+            {
+                "id": "pay-102",
+                "sessionId": "sess-102",
+                "operatorId": "op-1",
+                "coverageAmount": 350.0,
+                "observationAmount": 150.0,
+                "qualityBonusAmount": 25.0,
+                "totalAmount": 525.0,
+                "status": "APPROVED",
+                "computedAt": "2026-08-24T18:00:00Z",
+                "paidAt": None
+            }
+        ],
+        "total": 2
+    }
+
+@app.get("/api/fleet/sessions/history")
+@app.get("/fleet/sessions/history")
+async def get_fleet_session_history():
+    return {
+        "items": [
+            {
+                "id": "sess-101",
+                "operatorId": "op-1",
+                "vehicleId": "veh-1",
+                "startTime": "2026-08-25T06:00:00Z",
+                "endTime": "2026-08-25T08:00:00Z",
+                "status": "VALIDATED",
+                "reportedDistanceKm": 24.5,
+                "validatedDistanceKm": 24.5,
+                "observationCount": 12,
+                "dataQualityScore": 96.0
+            },
+            {
+                "id": "sess-102",
+                "operatorId": "op-1",
+                "vehicleId": "veh-1",
+                "startTime": "2026-08-24T14:00:00Z",
+                "endTime": "2026-08-24T17:30:00Z",
+                "status": "VALIDATED",
+                "reportedDistanceKm": 38.2,
+                "validatedDistanceKm": 38.2,
+                "observationCount": 19,
+                "dataQualityScore": 94.0
+            }
+        ],
+        "total": 2
+    }
+
 # ---------------- Citizen Mobile Nearby & Home Endpoints ----------------
 
 @app.get("/api/citizen/home")
@@ -1504,6 +1570,8 @@ async def get_admin_municipalities():
 
 @app.get("/api/admin/analytics/summary")
 @app.get("/admin/analytics/summary")
+@app.get("/api/admin/analytics")
+@app.get("/admin/analytics")
 async def get_admin_analytics_summary():
     current_hazards = _sync_db_hazards()
     active_h = [h for h in current_hazards if h.status != "REJECTED"]
@@ -1523,6 +1591,55 @@ async def get_admin_analytics_summary():
         "aiAvgLatencyMs": 38.0,
         "fleetCoveragePct": 96.0
     }
+
+@app.get("/api/admin/analytics/cities")
+@app.get("/admin/analytics/cities")
+async def get_admin_analytics_cities():
+    current_hazards = _sync_db_hazards()
+    active_h = [h for h in current_hazards if h.status != "REJECTED"]
+    critical_h = [h for h in active_h if h.severity == "CRITICAL"]
+    return [
+        {
+            "cityId": "c_blr",
+            "cityName": "Bengaluru",
+            "activeHazards": len(active_h),
+            "criticalHazards": len(critical_h),
+            "fleetCoveragePct": 96.0,
+            "resolutionRatePct": 88.5,
+            "avgResolutionDays": 1.4,
+            "citizenParticipation": 142
+        },
+        {
+            "cityId": "c_che",
+            "cityName": "Chennai",
+            "activeHazards": 12,
+            "criticalHazards": 3,
+            "fleetCoveragePct": 91.0,
+            "resolutionRatePct": 92.0,
+            "avgResolutionDays": 1.1,
+            "citizenParticipation": 98
+        }
+    ]
+
+@app.get("/api/admin/analytics/trends")
+@app.get("/admin/analytics/trends")
+async def get_admin_analytics_trends():
+    return [
+        {"label": "Day 1", "value": 12},
+        {"label": "Day 2", "value": 18},
+        {"label": "Day 3", "value": 15},
+        {"label": "Day 4", "value": 24},
+        {"label": "Day 5", "value": 30},
+        {"label": "Day 6", "value": 22},
+        {"label": "Day 7", "value": 28},
+        {"label": "Day 8", "value": 35},
+        {"label": "Day 9", "value": 19},
+        {"label": "Day 10", "value": 26},
+        {"label": "Day 11", "value": 32},
+        {"label": "Day 12", "value": 40},
+        {"label": "Day 13", "value": 25},
+        {"label": "Day 14", "value": 38}
+    ]
 
 @app.get("/api/admin/hazards")
 @app.get("/admin/hazards")
@@ -1782,7 +1899,51 @@ async def upload_media(request: Request, file: UploadFile = File(...)):
 
 # ---------------- Municipality App API Routes ----------------
 
+@app.post("/api/municipality/auth/login")
+@app.post("/municipality/auth/login")
+async def municipality_login(payload: Dict[str, Any] = Body(default={})):
+    code = payload.get("municipalityCode") or payload.get("email") or "bbmp-01"
+    officer = {
+        "id": "off_101",
+        "name": "Officer Rajesh Kumar",
+        "email": payload.get("email", "rajesh.kumar@bbmp.gov.in"),
+        "municipalityCode": code,
+        "municipalityName": "Bruhat Bengaluru Mahanagara Palike (BBMP)",
+        "cityId": "c_blr",
+        "cityName": "Bengaluru",
+        "role": "MUNICIPALITY_OFFICER",
+        "permissions": ["VIEW_HAZARDS", "UPDATE_REPAIRS", "INSPECT_HAZARDS"]
+    }
+    return {
+        "officer": officer,
+        "tokens": {
+            "accessToken": "safepath-municipality-access-token-jwt",
+            "refreshToken": "safepath-municipality-refresh-token-jwt",
+            "tokenType": "bearer"
+        }
+    }
+
+@app.get("/api/municipality/me/")
+@app.get("/municipality/me/")
+@app.get("/api/municipality/me")
+@app.get("/municipality/me")
+async def municipality_me():
+    return {
+        "officer": {
+            "id": "off_101",
+            "name": "Officer Rajesh Kumar",
+            "email": "rajesh.kumar@bbmp.gov.in",
+            "municipalityCode": "bbmp-01",
+            "municipalityName": "Bruhat Bengaluru Mahanagara Palike (BBMP)",
+            "cityId": "c_blr",
+            "cityName": "Bengaluru",
+            "role": "MUNICIPALITY_OFFICER",
+            "permissions": ["VIEW_HAZARDS", "UPDATE_REPAIRS", "INSPECT_HAZARDS"]
+        }
+    }
+
 @app.get("/api/municipality/cities/")
+@app.get("/municipality/cities/")
 @app.get("/api/cities")
 async def get_municipality_cities():
     return [
@@ -1792,6 +1953,7 @@ async def get_municipality_cities():
     ]
 
 @app.get("/api/municipality/dashboard/")
+@app.get("/municipality/dashboard/")
 @app.get("/api/dashboard")
 async def get_municipality_dashboard(cityId: Optional[str] = Query("c_blr")):
     current_hazards = _sync_db_hazards()
@@ -1809,6 +1971,7 @@ async def get_municipality_dashboard(cityId: Optional[str] = Query("c_blr")):
     }
 
 @app.get("/api/municipality/hazards/")
+@app.get("/municipality/hazards/")
 async def get_municipality_hazards_list(
     cityId: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
@@ -1828,6 +1991,7 @@ async def get_municipality_hazards_list(
     }
 
 @app.get("/api/municipality/hazards/{hazard_id}")
+@app.get("/municipality/hazards/{hazard_id}")
 async def get_municipality_hazard_detail(hazard_id: str = Path(...)):
     current_hazards = _sync_db_hazards()
     found = next((h for h in current_hazards if h.id == hazard_id), current_hazards[0])
@@ -1851,6 +2015,7 @@ async def get_municipality_hazard_detail(hazard_id: str = Path(...)):
     return h_dict
 
 @app.get("/api/municipality/hazards/{hazard_id}/verification")
+@app.get("/municipality/hazards/{hazard_id}/verification")
 async def get_municipality_hazard_verification(hazard_id: str = Path(...)):
     return {
         "hazardId": hazard_id,
@@ -1860,6 +2025,7 @@ async def get_municipality_hazard_verification(hazard_id: str = Path(...)):
     }
 
 @app.get("/api/municipality/repairs/")
+@app.get("/municipality/repairs/")
 async def get_municipality_repairs(
     cityId: Optional[str] = Query(None),
     status: Optional[str] = Query(None)
@@ -1881,6 +2047,7 @@ async def get_municipality_repairs(
     }
 
 @app.get("/api/municipality/analytics/summary")
+@app.get("/municipality/analytics/summary")
 async def get_municipality_analytics_summary(cityId: Optional[str] = Query("c_blr")):
     return {
         "cityId": cityId,

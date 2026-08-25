@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     AI_MODEL_PATH: str = "app/ml_models/pothole_v2_final.pt"
     # auto | cpu | 0 (CUDA device index) — "auto" picks CUDA if available, else CPU.
     AI_DEVICE: Literal["auto", "cpu", "0"] = "auto"
-    AI_DETECTION_CONFIDENCE: float = 0.25
+    AI_DETECTION_CONFIDENCE: float = 0.40
     AI_IOU_THRESHOLD: float = 0.45
     AI_IMAGE_SIZE: int = 640
 

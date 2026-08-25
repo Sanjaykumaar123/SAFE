@@ -1,4 +1,3 @@
-import { Camera, type CameraRef, Map as MapLibreMap, Marker as MapLibreMarker, UserLocation, type ViewStateChangeEvent } from '@maplibre/maplibre-react-native';
 import { router } from 'expo-router';
 import {
   AlertTriangle,
@@ -32,6 +31,25 @@ import { useMunicipalityStore } from '@/store/municipalityStore';
 import type { MunicipalityHazard } from '@/types/municipality';
 import { toMapLibreCoordinate } from '@/utils/geoCoordinate';
 
+let MapLibreMap: any = null;
+let Camera: any = null;
+let MapLibreMarker: any = null;
+let UserLocation: any = null;
+let isMapLibreAvailable = false;
+
+try {
+  const mod = require('@maplibre/maplibre-react-native');
+  MapLibreMap = mod.Map;
+  Camera = mod.Camera;
+  MapLibreMarker = mod.Marker;
+  UserLocation = mod.UserLocation;
+  if (MapLibreMap && Camera) {
+    isMapLibreAvailable = true;
+  }
+} catch {
+  isMapLibreAvailable = false;
+}
+
 const SEVERITY_COLORS: Record<string, string> = {
   CRITICAL: '#E5484D',
   HIGH: '#F97316',
@@ -54,7 +72,7 @@ const TILE_URLS: Record<MapLayerMode, string> = {
 
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
-  const cameraRef = useRef<CameraRef | null>(null);
+  const cameraRef = useRef<any>(null);
 
   const selectedCityId = useMunicipalityStore((s) => s.selectedCityId);
   const authorizedCities = useMunicipalityStore((s) => s.authorizedCities);
@@ -83,7 +101,7 @@ export default function MapScreen() {
   const { data, isLoading, isError, error, refetch } = useHazards(selectedCityId, filters, viewport ?? undefined);
 
   const onRegionDidChange = useCallback(
-    (event: { nativeEvent?: ViewStateChangeEvent }) => {
+    (event: { nativeEvent?: any }) => {
       const nativeEvent = event?.nativeEvent;
       if (!nativeEvent?.bounds) return;
       const [west, south, east, north] = nativeEvent.bounds;
@@ -111,28 +129,38 @@ export default function MapScreen() {
 
   return (
     <View style={styles.flex}>
-      <MapLibreMap
-        key={layerMode}
-        style={StyleSheet.absoluteFill}
-        mapStyle={mapStyle}
-        onRegionDidChange={onRegionDidChange}
-        onPress={() => setSelectedHazard(null)}
-        compass={false}
-      >
-        <Camera ref={cameraRef} initialViewState={{ center: [centerLon, centerLat], zoom: 12 }} />
-        <UserLocation animated accuracy />
+      {isMapLibreAvailable ? (
+        <MapLibreMap
+          key={layerMode}
+          style={StyleSheet.absoluteFill}
+          mapStyle={mapStyle}
+          onRegionDidChange={onRegionDidChange}
+          onPress={() => setSelectedHazard(null)}
+          compass={false}
+        >
+          <Camera ref={cameraRef} initialViewState={{ center: [centerLon, centerLat], zoom: 12 }} />
+          {UserLocation ? <UserLocation animated /> : null}
 
-        {hazardsList.map((hazard) => {
-          const pinColor = SEVERITY_COLORS[hazard.severity] || colors.primaryBlue;
-          return (
-            <MapLibreMarker key={hazard.id} lngLat={toMapLibreCoordinate(hazard)} onPress={() => handleMarkerPress(hazard)}>
-              <View style={[styles.hazardPin, { backgroundColor: pinColor, borderWidth: selectedHazard?.id === hazard.id ? 3 : 2 }]}>
-                <AlertTriangle size={12} color="#FFFFFF" />
-              </View>
-            </MapLibreMarker>
-          );
-        })}
-      </MapLibreMap>
+          {hazardsList.map((hazard) => {
+            const pinColor = SEVERITY_COLORS[hazard.severity] || colors.primaryBlue;
+            return (
+              <MapLibreMarker key={hazard.id} lngLat={toMapLibreCoordinate(hazard)} onPress={() => handleMarkerPress(hazard)}>
+                <View style={[styles.hazardPin, { backgroundColor: pinColor, borderWidth: selectedHazard?.id === hazard.id ? 3 : 2 }]}>
+                  <AlertTriangle size={12} color="#FFFFFF" />
+                </View>
+              </MapLibreMarker>
+            );
+          })}
+        </MapLibreMap>
+      ) : (
+        <View style={styles.mapFallbackBg}>
+          <View style={styles.mapFallbackCenter}>
+            <MapPin size={32} color={colors.primaryBlue} />
+            <Text style={styles.mapFallbackTitle}>{selectedCity?.name ?? 'Bengaluru'} Road Intelligence Map</Text>
+            <Text style={styles.mapFallbackSubtitle}>{hazardsList.length} active road hazards tracked across wards.</Text>
+          </View>
+        </View>
+      )}
 
       {/* Top Header & Filter Chips */}
       <View style={[styles.topContainer, { top: insets.top + 8 }]}>
@@ -477,5 +505,31 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: 'center',
     zIndex: 25,
+  },
+  mapFallbackBg: {
+    flex: 1,
+    backgroundColor: '#E5E9F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.xl,
+  },
+  mapFallbackCenter: {
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: '#FFFFFF',
+    padding: spacing.lg,
+    borderRadius: radius.lg,
+    ...shadow.md,
+  },
+  mapFallbackTitle: {
+    ...typography.headlineMd,
+    color: colors.deepNavy,
+    textAlign: 'center',
+    marginTop: spacing.xs,
+  },
+  mapFallbackSubtitle: {
+    ...typography.bodyMd,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
 });

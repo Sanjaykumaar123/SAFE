@@ -86,25 +86,25 @@ function normalizeBoundingBox(bx: any, conf: number): BoundingBox {
   } else if (typeof bx === 'object' && bx !== null) {
     if ('x' in bx && 'y' in bx && ('width' in bx || 'height' in bx)) {
       return {
-        x: Math.max(0.02, Math.min(0.95, Number(bx.x) || 0.25)),
-        y: Math.max(0.02, Math.min(0.95, Number(bx.y) || 0.35)),
-        width: Math.max(0.05, Math.min(0.95, Number(bx.width) || 0.5)),
-        height: Math.max(0.05, Math.min(0.95, Number(bx.height) || 0.4)),
+        x: Math.max(0.0, Math.min(0.95, Number(bx.x) || 0.25)),
+        y: Math.max(0.0, Math.min(0.95, Number(bx.y) || 0.35)),
+        width: Math.max(0.02, Math.min(0.95, Number(bx.width) || 0.4)),
+        height: Math.max(0.02, Math.min(0.95, Number(bx.height) || 0.3)),
         confidence: Math.round(conf * 100) / 100,
         label: `POTHOLE ${Math.round(conf * 100)}%`,
       };
     }
     x1 = Number(bx.x1 ?? bx.x) || 0.25;
     y1 = Number(bx.y1 ?? bx.y) || 0.35;
-    x2 = Number(bx.x2 ?? (x1 + (bx.width ?? 0.5))) || (x1 + 0.5);
-    y2 = Number(bx.y2 ?? (y1 + (bx.height ?? 0.4))) || (y1 + 0.4);
+    x2 = Number(bx.x2 ?? (x1 + (bx.width ?? 0.4))) || (x1 + 0.4);
+    y2 = Number(bx.y2 ?? (y1 + (bx.height ?? 0.3))) || (y1 + 0.3);
   }
 
   if (x1 > 1) { x1 /= 640.0; y1 /= 640.0; x2 /= 640.0; y2 /= 640.0; }
-  x1 = Math.max(0.02, Math.min(0.82, x1));
-  y1 = Math.max(0.02, Math.min(0.82, y1));
-  const width = Math.max(0.18, Math.min(1.0 - x1, x2 - x1));
-  const height = Math.max(0.12, Math.min(1.0 - y1, y2 - y1));
+  x1 = Math.max(0.0, Math.min(0.95, x1));
+  y1 = Math.max(0.0, Math.min(0.95, y1));
+  const width = Math.max(0.03, Math.min(1.0 - x1, x2 - x1));
+  const height = Math.max(0.03, Math.min(1.0 - y1, y2 - y1));
 
   return {
     x: Math.round(x1 * 100) / 100,
@@ -140,8 +140,8 @@ export class YOLOAIAnalysisService implements IAIAnalysisService {
       let resData: DirectDetectResponse | null = null;
 
       if (base64Image) {
-        const payload = { imageBase64: base64Image, confidenceThreshold: 0.20 };
-        const rawPayload = { image_base64: base64Image };
+        const payload = { imageBase64: base64Image, confidenceThreshold: 0.40 };
+        const rawPayload = { image_base64: base64Image, confidence_threshold: 0.40 };
 
         const endpoints = [
           () => apiClient.post<DirectDetectResponse>('/detect', payload),

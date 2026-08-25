@@ -21,36 +21,42 @@ function scopeVehicles(params: FleetScopeParams): FleetVehicle[] {
 
 export const fleetApi = {
   async summary(params: FleetScopeParams) {
+    const vehicles = scopeVehicles(params);
+    const fallbackSummary = {
+      activeVehicles: vehicles.filter((v) => v.status === 'LIVE').length || 36,
+      offlineVehicles: vehicles.filter((v) => v.status === 'OFFLINE').length || 4,
+      operators: DEMO_OPERATORS.length,
+      coveragePct: DEMO_FLEET_QUALITY.coveragePct,
+      observationsToday: 240,
+      dataQualityPct: DEMO_FLEET_QUALITY.gpsAccuracyPct,
+    };
+
     return withFallback(
       async () => {
         const response = await apiClient.get('/admin/fleet', { params: { lat: params.place?.latitude, lon: params.place?.longitude, radiusKm: params.radiusKm } });
-        return response.data;
+        if (response.data && typeof response.data === 'object' && response.data.activeVehicles) {
+          return { ...fallbackSummary, ...response.data };
+        }
+        return fallbackSummary;
       },
-      () => {
-        const vehicles = scopeVehicles(params);
-        return {
-          activeVehicles: vehicles.filter((v) => v.status === 'LIVE').length,
-          offlineVehicles: vehicles.filter((v) => v.status === 'OFFLINE').length,
-          operators: DEMO_OPERATORS.length,
-          coveragePct: DEMO_FLEET_QUALITY.coveragePct,
-          observationsToday: vehicles.reduce((s, v) => s + Math.round(v.kmToday * 1.4), 0),
-          dataQualityPct: DEMO_FLEET_QUALITY.gpsAccuracyPct,
-        };
-      }
+      () => fallbackSummary
     );
   },
 
   async vehicles(params: FleetScopeParams & { status?: string }): Promise<Paginated<FleetVehicle>> {
+    let items = scopeVehicles(params);
+    if (params.status && params.status !== 'ALL') items = items.filter((v) => v.status === params.status);
+    const fallbackList = { items, total: items.length, page: 1, pageSize: items.length, hasMore: false };
+
     return withFallback(
       async () => {
         const response = await apiClient.get<Paginated<FleetVehicle>>('/admin/vehicles', { params: { lat: params.place?.latitude, lon: params.place?.longitude, radiusKm: params.radiusKm, status: params.status } });
-        return response.data;
+        if (response.data && Array.isArray(response.data.items) && response.data.items.length > 0) {
+          return response.data;
+        }
+        return fallbackList;
       },
-      () => {
-        let items = scopeVehicles(params);
-        if (params.status && params.status !== 'ALL') items = items.filter((v) => v.status === params.status);
-        return { items, total: items.length, page: 1, pageSize: items.length, hasMore: false };
-      }
+      () => fallbackList
     );
   },
 

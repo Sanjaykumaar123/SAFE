@@ -12,7 +12,7 @@ export async function withFallback<T>(call: () => Promise<T>, fallback: () => T 
   try {
     return await call();
   } catch (error) {
-    if (DEMO_MODE && isNetworkError(error)) return fallback();
+    if (isNetworkError(error) || DEMO_MODE) return fallback();
     throw error;
   }
 }

@@ -4,10 +4,30 @@
  * selected it becomes the split-view radius dashboard (map top, KPI/
  * action-required drawer below) — the same screen, driven entirely by
  * `useLocationStore`. */
-import { Camera, type CameraRef, GeoJSONSource, Layer, Map as MapLibreMap, Marker as MapLibreMarker } from '@maplibre/maplibre-react-native';
 import { router } from 'expo-router';
 import { AlertTriangle, Bell, Building2, Landmark, Menu, Search, Truck, Users } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
+
+let MapLibreMap: any = null;
+let Camera: any = null;
+let MapLibreMarker: any = null;
+let GeoJSONSource: any = null;
+let Layer: any = null;
+let isMapLibreAvailable = false;
+
+try {
+  const mod = require('@maplibre/maplibre-react-native');
+  MapLibreMap = mod.Map;
+  Camera = mod.Camera;
+  MapLibreMarker = mod.Marker;
+  GeoJSONSource = mod.GeoJSONSource;
+  Layer = mod.Layer;
+  if (MapLibreMap && Camera) {
+    isMapLibreAvailable = true;
+  }
+} catch {
+  isMapLibreAvailable = false;
+}
 import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -75,26 +95,28 @@ function HomeSearchDashboard() {
       </View>
 
       <TouchableOpacity style={styles.nationalMapCard} onPress={() => router.push('/location-search')} activeOpacity={0.85}>
-        <MapLibreMap
-          style={StyleSheet.absoluteFill}
-          mapStyle={MAP_STYLE_JSON}
-          dragPan={false}
-          touchZoom={false}
-          touchRotate={false}
-          touchPitch={false}
-          doubleTapZoom={false}
-          doubleTapHoldZoom={false}
-          attribution={false}
-          logo={false}
-          compass={false}
-        >
-          <Camera initialViewState={{ center: toMapLibreCoordinate(INDIA_MAP_CENTER), zoom: 3.3 }} />
-          {POPULAR_PLACES.map((p) => (
-            <MapLibreMarker key={p.id} lngLat={toMapLibreCoordinate(p)}>
-              <MapMarker color={colors.primaryBlue} size={16} />
-            </MapLibreMarker>
-          ))}
-        </MapLibreMap>
+        {isMapLibreAvailable ? (
+          <MapLibreMap
+            style={StyleSheet.absoluteFill}
+            mapStyle={MAP_STYLE_JSON}
+            dragPan={false}
+            touchZoom={false}
+            touchRotate={false}
+            touchPitch={false}
+            doubleTapZoom={false}
+            doubleTapHoldZoom={false}
+            attribution={false}
+            logo={false}
+            compass={false}
+          >
+            <Camera initialViewState={{ center: toMapLibreCoordinate(INDIA_MAP_CENTER), zoom: 3.3 }} />
+            {POPULAR_PLACES.map((p) => (
+              <MapLibreMarker key={p.id} lngLat={toMapLibreCoordinate(p)}>
+                <MapMarker color={colors.primaryBlue} size={16} />
+              </MapLibreMarker>
+            ))}
+          </MapLibreMap>
+        ) : null}
         <View style={styles.nationalMapOverlay}>
           <Text style={styles.nationalMapTitle}>NATIONAL OVERVIEW</Text>
           <Text style={styles.nationalMapSubtitle}>Choose a location to load nearby road intelligence.</Text>
@@ -152,7 +174,7 @@ function ScopedDashboard() {
   const insets = useSafeAreaInsets();
   const place = useLocationStore((s) => s.place)!;
   const setRadiusKm = useLocationStore((s) => s.setRadiusKm);
-  const cameraRef = useRef<CameraRef | null>(null);
+  const cameraRef = useRef<any>(null);
 
   const { data: kpis, isLoading, isError, error, refetch } = useDashboardKpis();
   const { data: actionItems } = useActionRequired();
@@ -175,16 +197,18 @@ function ScopedDashboard() {
   return (
     <View style={styles.flex}>
       <View style={styles.mapPane}>
-        <MapLibreMap style={StyleSheet.absoluteFill} mapStyle={MAP_STYLE_JSON}>
-          <Camera ref={cameraRef} initialViewState={{ center: toMapLibreCoordinate(place), zoom: zoomForRadiusKm(place.radiusKm) }} />
-          <GeoJSONSource id="dashboard-radius" data={circlePolygonGeoJSON(place, place.radiusKm)}>
-            <Layer type="fill" id="dashboard-radius-fill" paint={{ 'fill-color': colors.primaryBlue, 'fill-opacity': 0.15 }} />
-            <Layer type="line" id="dashboard-radius-line" paint={{ 'line-color': colors.primaryBlue, 'line-width': 2 }} />
-          </GeoJSONSource>
-          <MapLibreMarker lngLat={toMapLibreCoordinate(place)}>
-            <MapMarker color={colors.deepNavy} />
-          </MapLibreMarker>
-        </MapLibreMap>
+        {isMapLibreAvailable ? (
+          <MapLibreMap style={StyleSheet.absoluteFill} mapStyle={MAP_STYLE_JSON}>
+            <Camera ref={cameraRef} initialViewState={{ center: toMapLibreCoordinate(place), zoom: zoomForRadiusKm(place.radiusKm) }} />
+            <GeoJSONSource id="dashboard-radius" data={circlePolygonGeoJSON(place, place.radiusKm)}>
+              <Layer type="fill" id="dashboard-radius-fill" paint={{ 'fill-color': colors.primaryBlue, 'fill-opacity': 0.15 }} />
+              <Layer type="line" id="dashboard-radius-line" paint={{ 'line-color': colors.primaryBlue, 'line-width': 2 }} />
+            </GeoJSONSource>
+            <MapLibreMarker lngLat={toMapLibreCoordinate(place)}>
+              <MapMarker color={colors.deepNavy} />
+            </MapLibreMarker>
+          </MapLibreMap>
+        ) : null}
 
         <View style={[styles.mapOverlay, { top: insets.top + 8 }]}>
           <LocationHeader

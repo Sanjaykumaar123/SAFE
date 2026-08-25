@@ -11,14 +11,31 @@ import { colors, radius, spacing, typography } from '@/constants/theme';
 import { useAnalyticsSummary, useCityPerformance, useHazardTrends } from '@/features/analytics/useAnalytics';
 import { useLocationStore } from '@/store/locationStore';
 
+import type { CityPerformanceRow, TrendPoint } from '@/types/admin';
+
 export default function AnalyticsScreen() {
   const insets = useSafeAreaInsets();
   const place = useLocationStore((s) => s.place);
   const { data: summary } = useAnalyticsSummary();
   const { data: cityPerf } = useCityPerformance();
   const { data: trend } = useHazardTrends();
+  const trendList: TrendPoint[] = Array.isArray(trend)
+    ? trend
+    : Array.isArray((trend as any)?.items)
+    ? (trend as any).items
+    : Array.isArray((trend as any)?.trend)
+    ? (trend as any).trend
+    : [];
 
-  const maxTrend = Math.max(1, ...(trend?.map((t) => t.value) ?? [1]));
+  const cityList: CityPerformanceRow[] = Array.isArray(cityPerf)
+    ? cityPerf
+    : Array.isArray((cityPerf as any)?.items)
+    ? (cityPerf as any).items
+    : Array.isArray((cityPerf as any)?.cities)
+    ? (cityPerf as any).cities
+    : [];
+
+  const maxTrend = Math.max(1, ...(trendList.map((t: TrendPoint) => t.value ?? 0) ?? [1]));
 
   return (
     <ScrollView style={[styles.flex, { paddingTop: insets.top }]} contentContainerStyle={styles.content}>
@@ -45,9 +62,9 @@ export default function AnalyticsScreen() {
       <Text style={styles.sectionLabel}>HAZARD TREND (LAST 14 DAYS)</Text>
       <View style={styles.trendCard}>
         <View style={styles.trendChart}>
-          {trend?.map((point) => (
+          {trendList.map((point) => (
             <View key={point.label} style={styles.trendBarWrap}>
-              <View style={[styles.trendBar, { height: Math.max(3, (point.value / maxTrend) * 80) }]} />
+              <View style={[styles.trendBar, { height: Math.max(3, ((point.value ?? 0) / maxTrend) * 80) }]} />
             </View>
           ))}
         </View>
@@ -58,7 +75,7 @@ export default function AnalyticsScreen() {
         <Text style={styles.sectionHint}>Not a ranking — informational only</Text>
       </View>
       <View style={styles.cityTable}>
-        {cityPerf?.map((row) => (
+        {cityList.map((row) => (
           <View key={row.cityId} style={styles.cityRow}>
             <View style={styles.cityRowHeader}>
               <Text style={styles.cityName}>{row.cityName}</Text>

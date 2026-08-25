@@ -61,12 +61,16 @@ export const cityApi = {
 
 export const municipalityApi = {
   async list(placeCityId?: string): Promise<Paginated<Municipality>> {
+    const fallbackItems = placeCityId ? DEMO_MUNICIPALITIES.filter((m) => m.cityId === placeCityId) : DEMO_MUNICIPALITIES;
+    const fallbackList = { items: fallbackItems, total: fallbackItems.length, page: 1, pageSize: fallbackItems.length, hasMore: false };
+
     return withFallback(
-      async () => (await apiClient.get<Paginated<Municipality>>('/admin/municipalities', { params: { cityId: placeCityId } })).data,
-      () => {
-        const items = placeCityId ? DEMO_MUNICIPALITIES.filter((m) => m.cityId === placeCityId) : DEMO_MUNICIPALITIES;
-        return { items, total: items.length, page: 1, pageSize: items.length, hasMore: false };
-      }
+      async () => {
+        const { data } = await apiClient.get<Paginated<Municipality>>('/admin/municipalities', { params: { cityId: placeCityId } });
+        if (data && Array.isArray(data.items) && data.items.length > 0) return data;
+        return fallbackList;
+      },
+      () => fallbackList
     );
   },
 

@@ -1,8 +1,29 @@
+import Constants from 'expo-constants';
+
+function getResolvedApiUrl(): string {
+  try {
+    const envUrl = process.env.EXPO_PUBLIC_API_URL;
+    if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+      return envUrl;
+    }
+    const hostUri = Constants.expoConfig?.hostUri || Constants.manifest2?.extra?.expoGo?.debuggerHost || (Constants as any)?.manifest?.debuggerHost;
+    if (hostUri) {
+      const hostIp = hostUri.split(':')[0];
+      if (hostIp) {
+        return `http://${hostIp}:8000/api`;
+      }
+    }
+    return envUrl ? envUrl.replace('localhost', '10.0.2.2').replace('127.0.0.1', '10.0.2.2') : 'http://10.0.2.2:8000/api';
+  } catch {
+    return process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:8000/api';
+  }
+}
+
 /** Centralized environment/config reads — nothing else touches
  * `process.env.EXPO_PUBLIC_*` directly (§80: no database URL ever lives in
  * a client env var, only this HTTP API base). */
-export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:8000/api';
-export const DEMO_MODE = process.env.EXPO_PUBLIC_DEMO_MODE !== 'false';
+export const API_URL = getResolvedApiUrl();
+export const DEMO_MODE = process.env.EXPO_PUBLIC_DEMO_MODE === 'true';
 export const MAP_KEY = process.env.EXPO_PUBLIC_MAP_KEY ?? '';
 export const GEOCODE_URL = process.env.EXPO_PUBLIC_GEOCODE_URL ?? 'https://nominatim.openstreetmap.org';
 
