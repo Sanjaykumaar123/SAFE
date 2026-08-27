@@ -88,6 +88,17 @@ def get_model():
     except Exception:
         return None
 
+@app.on_event("startup")
+async def _preload_model_on_startup():
+    """Load the checkpoint into memory when the server boots instead of on
+    the first inference request — without this, whichever user's request
+    happens to arrive first (or the first one after Render's free-tier
+    instance spins back up from idle) pays the full model-load time on top
+    of actual inference, which reads to the client as the AI call "hanging"."""
+    print("[*] Preloading AI model at startup...")
+    get_model()
+    print("[*] AI model preload complete.")
+
 def _public_base_url(request: Request) -> str:
     """Build the externally-reachable base URL for media links returned to clients.
     Prefers the PUBLIC_BASE_URL env var (for deployments behind a fixed host/proxy),

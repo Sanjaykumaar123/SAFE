@@ -49,6 +49,22 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content={"detail": message})
 
 
+@app.on_event("startup")
+async def _preload_ai_model() -> None:
+    """Load the YOLO checkpoint into memory at boot instead of on the first
+    inference request — otherwise whichever request happens to arrive first
+    (or the first one after a hosted instance spins back up from idle) pays
+    the multi-second model-load cost on top of actual inference latency."""
+    if settings.AI_PROVIDER != "yolov8":
+        return
+    from app.services.ai.yolo_service import _get_model_and_device
+    try:
+        _get_model_and_device()
+    except Exception as ex:
+        import logging
+        logging.getLogger("safepath.ai").warning(f"AI model preload failed, will retry on first request: {ex}")
+
+
 @app.get("/health", tags=["system"])
 async def health_check() -> dict:
     return {"status": "ok", "environment": settings.ENVIRONMENT, "demo_mode": settings.DEMO_MODE, "ai_provider": settings.AI_PROVIDER}

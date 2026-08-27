@@ -111,7 +111,10 @@ export default function CameraScreen() {
     if (!cameraRef.current || isCapturing) return;
     setIsCapturing(true);
     try {
-      const photo = await cameraRef.current.takePictureAsync({ quality: 0.7, base64: true });
+      // base64: false — the AI service reads the file itself (services/ai/YOLOAIAnalysisService.ts);
+      // asking the native camera module to *also* base64-encode the JPEG here was pure wasted
+      // capture-time latency since that output was never read.
+      const photo = await cameraRef.current.takePictureAsync({ quality: 0.7, base64: false });
       if (!photo) throw new Error('No photo returned');
       await processImageWithAI(photo.uri, photo.width, photo.height);
     } catch {
