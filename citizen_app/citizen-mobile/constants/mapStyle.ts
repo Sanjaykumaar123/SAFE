@@ -1,9 +1,7 @@
 /**
  * §map-provider — MapLibre raster style pointing at the same free Carto/OSM
  * tiles this app already used as a `UrlTile` overlay. No API key, no
- * billing account, no signup of any kind (Carto's basemap tiles are free
- * for reasonable non-commercial-scale use — the same tiles every sibling
- * SafePath app has been drawing over Google Maps this whole time).
+ * billing account, no signup of any kind.
  *
  * Replaces `react-native-maps`, whose Android backend is ALWAYS Google
  * Play Services' Maps SDK natively — even when only drawing a custom
@@ -33,5 +31,3 @@ export const MAP_STYLE_JSON: StyleSpecification = {
   },
   layers: [{ id: 'osm-tiles-layer-v2', type: 'raster', source: 'osm-tiles-v2', minzoom: 0, maxzoom: 22 }],
 };
-
-export const MAP_STYLE_JSON_STRING = JSON.stringify(MAP_STYLE_JSON);

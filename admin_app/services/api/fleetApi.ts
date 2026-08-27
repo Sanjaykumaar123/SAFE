@@ -13,7 +13,7 @@ export interface FleetScopeParams {
 }
 
 function scopeVehicles(params: FleetScopeParams): FleetVehicle[] {
-  if (!params.place) return DEMO_VEHICLES.filter((v) => v.status === 'LIVE').slice(0, 40);
+  if (!params.place) return DEMO_VEHICLES;
   return DEMO_VEHICLES.map((v) => ({ ...v, distanceKm: distanceKm(params.place!, v) }))
     .filter((v) => v.distanceKm! <= params.radiusKm)
     .sort((a, b) => a.distanceKm! - b.distanceKm!);

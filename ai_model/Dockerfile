@@ -28,4 +28,4 @@ RUN mkdir -p /app/uploads /app/static /app/models
 # Expose port 8001 for AI service REST API
 EXPOSE 8001
 
-CMD ["uvicorn", "web_app:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["sh", "-c", "uvicorn web_app:app --host 0.0.0.0 --port ${PORT:-8001}"]

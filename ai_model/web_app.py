@@ -537,19 +537,31 @@ INITIAL_HAZARDS: List[HazardModel] = [
 ]
 
 def _sync_db_hazards():
-    db_rows = db_manager.get_all_hazards()
-    loaded_hazards = []
-    for r in db_rows:
-        try:
-            r_copy = dict(r)
-            if r_copy.get("bbox") and isinstance(r_copy["bbox"], dict):
-                r_copy["bbox"] = BoundingBoxModel(**r_copy["bbox"])
-            loaded_hazards.append(HazardModel(**r_copy))
-        except Exception:
-            pass
-    return loaded_hazards if loaded_hazards else list(INITIAL_HAZARDS)
+    try:
+        db_rows = db_manager.get_all_hazards()
+        loaded_hazards = []
+        for r in db_rows:
+            try:
+                r_copy = dict(r)
+                if r_copy.get("bbox") and isinstance(r_copy["bbox"], dict):
+                    r_copy["bbox"] = BoundingBoxModel(**r_copy["bbox"])
+                elif r_copy.get("bbox") and isinstance(r_copy["bbox"], str):
+                    try:
+                        r_copy["bbox"] = BoundingBoxModel(**json.loads(r_copy["bbox"]))
+                    except Exception:
+                        r_copy["bbox"] = None
+                else:
+                    r_copy["bbox"] = None
+                loaded_hazards.append(HazardModel(**r_copy))
+            except Exception:
+                pass
+        return loaded_hazards if loaded_hazards else list(INITIAL_HAZARDS)
+    except Exception:
+        return list(INITIAL_HAZARDS)
 
 DEMO_HAZARDS: List[HazardModel] = _sync_db_hazards()
+if not DEMO_HAZARDS:
+    DEMO_HAZARDS = list(INITIAL_HAZARDS)
 
 DEMO_WORK_ORDERS: List[WorkOrderModel] = [
     WorkOrderModel(
@@ -562,7 +574,7 @@ DEMO_WORK_ORDERS: List[WorkOrderModel] = [
         slaBreached=False,
         createdAt="2026-08-22T10:45:00Z",
         estimatedCompletion="2026-08-24T16:00:00Z",
-        hazard=DEMO_HAZARDS[0] if DEMO_HAZARDS else INITIAL_HAZARDS[0]
+        hazard=DEMO_HAZARDS[0] if (DEMO_HAZARDS and len(DEMO_HAZARDS) > 0) else INITIAL_HAZARDS[0]
     )
 ]
 
@@ -1809,7 +1821,7 @@ async def list_admin_hazards(
 @app.get("/admin/hazards/{hazard_id}")
 async def get_hazard_by_id(hazard_id: str = Path(...)):
     current_hazards = _sync_db_hazards()
-    found = next((h for h in current_hazards if h.id == hazard_id or getattr(h, 'code', '') == hazard_id), current_hazards[0])
+    found = next((h for h in current_hazards if h.id == hazard_id or getattr(h, 'code', '') == hazard_id), current_hazards[0] if current_hazards else INITIAL_HAZARDS[0])
     h_dict = found.dict() if hasattr(found, 'dict') else dict(found)
     
     img_url = h_dict.get("photo_url") or h_dict.get("photoUrl") or "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=800"
@@ -1982,7 +1994,7 @@ async def create_report(payload: Dict[str, Any] = Body(...)):
 @app.get("/api/reports/{report_id}")
 async def get_report_detail(report_id: str = Path(...)):
     current_hazards = _sync_db_hazards()
-    found = next((h for h in current_hazards if f"rep_{h.id}" == report_id or h.id == report_id), current_hazards[0])
+    found = next((h for h in current_hazards if f"rep_{h.id}" == report_id or h.id == report_id), current_hazards[0] if current_hazards else INITIAL_HAZARDS[0])
     now_iso = datetime.now(timezone.utc).isoformat()
 
     status_history = [{"status": "REPORTED", "note": "Submitted by citizen", "createdAt": found.createdAt}]
@@ -2163,7 +2175,7 @@ async def get_municipality_hazards_list(
 @app.get("/municipality/hazards/{hazard_id}")
 async def get_municipality_hazard_detail(hazard_id: str = Path(...)):
     current_hazards = _sync_db_hazards()
-    found = next((h for h in current_hazards if h.id == hazard_id), current_hazards[0])
+    found = next((h for h in current_hazards if h.id == hazard_id), current_hazards[0] if current_hazards else INITIAL_HAZARDS[0])
     h_dict = found.dict()
     h_dict["roadName"] = found.locationName
     h_dict["citizenReports"] = []
@@ -2317,8 +2329,8 @@ async def verify_admin_hazard(hazard_id: str, payload: Dict[str, Any] = Body(def
             db_manager.save_hazard(h.dict() if hasattr(h, "dict") else dict(h))
             found = h
             break
-    if not found and current_hazards:
-        found = current_hazards[0]
+    if not found:
+        found = current_hazards[0] if current_hazards else INITIAL_HAZARDS[0]
         found.status = "VERIFIED"
         db_manager.save_hazard(found.dict() if hasattr(found, "dict") else dict(found))
     
@@ -2344,8 +2356,8 @@ async def reject_admin_hazard(hazard_id: str, payload: Dict[str, Any] = Body(def
             db_manager.save_hazard(h.dict() if hasattr(h, "dict") else dict(h))
             found = h
             break
-    if not found and current_hazards:
-        found = current_hazards[0]
+    if not found:
+        found = current_hazards[0] if current_hazards else INITIAL_HAZARDS[0]
         found.status = "REJECTED"
         db_manager.save_hazard(found.dict() if hasattr(found, "dict") else dict(found))
     
@@ -2371,8 +2383,8 @@ async def reopen_admin_hazard(hazard_id: str, payload: Dict[str, Any] = Body(def
             db_manager.save_hazard(h.dict() if hasattr(h, "dict") else dict(h))
             found = h
             break
-    if not found and current_hazards:
-        found = current_hazards[0]
+    if not found:
+        found = current_hazards[0] if current_hazards else INITIAL_HAZARDS[0]
         found.status = "REOPENED"
         db_manager.save_hazard(found.dict() if hasattr(found, "dict") else dict(found))
     

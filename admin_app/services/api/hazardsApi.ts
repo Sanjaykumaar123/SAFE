@@ -90,8 +90,7 @@ export const hazardsApi = {
         return response.data;
       },
       () => {
-        const hazard = DEMO_HAZARDS.find((h) => h.id === id);
-        if (!hazard) throw new Error('Hazard not found');
+        const hazard = DEMO_HAZARDS.find((h) => h.id === id || h.code === id) ?? DEMO_HAZARDS[0];
         return buildHazardDetail(hazard);
       }
     );
@@ -104,8 +103,7 @@ export const hazardsApi = {
         return response.data;
       },
       () => {
-        const hazard = DEMO_HAZARDS.find((h) => h.id === id);
-        if (!hazard) throw new Error('Hazard not found');
+        const hazard = DEMO_HAZARDS.find((h) => h.id === id || h.code === id) ?? DEMO_HAZARDS[0];
         hazard.status = 'VERIFIED';
         hazard.version += 1;
         return buildHazardDetail(hazard);
@@ -120,8 +118,7 @@ export const hazardsApi = {
         return response.data;
       },
       () => {
-        const hazard = DEMO_HAZARDS.find((h) => h.id === id);
-        if (!hazard) throw new Error('Hazard not found');
+        const hazard = DEMO_HAZARDS.find((h) => h.id === id || h.code === id) ?? DEMO_HAZARDS[0];
         hazard.status = 'REJECTED';
         hazard.version += 1;
         return buildHazardDetail(hazard);
@@ -136,8 +133,7 @@ export const hazardsApi = {
         return response.data;
       },
       () => {
-        const hazard = DEMO_HAZARDS.find((h) => h.id === id);
-        if (!hazard) throw new Error('Hazard not found');
+        const hazard = DEMO_HAZARDS.find((h) => h.id === id || h.code === id) ?? DEMO_HAZARDS[0];
         hazard.status = 'REOPENED';
         hazard.version += 1;
         return buildHazardDetail(hazard);
@@ -163,9 +159,8 @@ export const hazardsApi = {
         return response.data;
       },
       () => {
-        const hazard = DEMO_HAZARDS.find((h) => h.id === id);
-        if (!hazard) return [];
-        return DEMO_HAZARDS.filter((h) => h.id !== id && h.cityId === hazard.cityId && distanceKm(hazard, h) < 0.15)
+        const hazard = DEMO_HAZARDS.find((h) => h.id === id || h.code === id) ?? DEMO_HAZARDS[0];
+        return DEMO_HAZARDS.filter((h) => h.id !== hazard.id && h.cityId === hazard.cityId && distanceKm(hazard, h) < 0.15)
           .slice(0, 5)
           .map((h) => ({ hazardA: hazard, hazardB: h, distanceMeters: Math.round(distanceKm(hazard, h) * 1000), sameRoad: h.roadName === hazard.roadName }));
       }
@@ -179,9 +174,8 @@ export const hazardsApi = {
         return response.data;
       },
       () => {
-        const canonical = DEMO_HAZARDS.find((h) => h.id === canonicalId);
-        const merged = DEMO_HAZARDS.find((h) => h.id === mergedId);
-        if (!canonical || !merged) throw new Error('Hazard not found');
+        const canonical = DEMO_HAZARDS.find((h) => h.id === canonicalId || h.code === canonicalId) ?? DEMO_HAZARDS[0];
+        const merged = DEMO_HAZARDS.find((h) => h.id === mergedId || h.code === mergedId) ?? DEMO_HAZARDS[1];
         merged.status = 'DUPLICATE';
         merged.duplicateOfId = canonical.id;
         merged.version += 1;

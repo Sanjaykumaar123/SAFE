@@ -42,8 +42,11 @@ class Settings(BaseSettings):
 
     # --- AI ---
     AI_PROVIDER: Literal["mock", "yolov8"] = "yolov8"
-    # Microservice URL of the AI Model API Server (e.g., http://localhost:8001 or deployed AI endpoint)
-    AI_SERVER_URL: str = "http://localhost:8001"
+    # Optional microservice URL of a separate AI Model API server. Leave empty
+    # (default) to always use the bundled local checkpoint (AI_MODEL_PATH) —
+    # fast and has no network/cold-start dependency. Only set this to run
+    # inference against a separate deployed AI server instead.
+    AI_SERVER_URL: str = ""
     # Path to a YOLO .pt checkpoint, relative to backend/api/ (or absolute).
     AI_MODEL_PATH: str = "app/ml_models/pothole_v2_final.pt"
     # auto | cpu | 0 (CUDA device index) — "auto" picks CUDA if available, else CPU.

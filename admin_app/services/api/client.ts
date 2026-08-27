@@ -31,7 +31,7 @@ export const apiClient: AxiosInstance = axios.create({
 
 apiClient.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
   const token = await tokenStorage.getAccessToken();
-  if (token) {
+  if (token && !token.startsWith('demo-')) {
     config.headers = config.headers ?? new AxiosHeaders();
     config.headers.set('Authorization', `Bearer ${token}`);
   }
@@ -57,7 +57,7 @@ let refreshPromise: Promise<string | null> | null = null;
 
 async function refreshAccessToken(): Promise<string | null> {
   const refreshToken = await tokenStorage.getRefreshToken();
-  if (!refreshToken) return null;
+  if (!refreshToken || refreshToken.startsWith('demo-')) return null;
   try {
     const response = await axios.post<{ access_token: string; refresh_token: string; token_type: string }>(
       `${API_URL}/auth/refresh`,
@@ -77,8 +77,14 @@ apiClient.interceptors.response.use(undefined, async (error: AxiosError) => {
   const original = error.config as (InternalAxiosRequestConfig & { _retried?: boolean }) | undefined;
   const isAuthEndpoint = original?.url?.includes('/auth/login') || original?.url?.includes('/auth/refresh');
 
+  const token = await tokenStorage.getAccessToken();
+  const isDemoToken = token?.startsWith('demo-');
+
   if (error.response?.status === 401 && original && !original._retried && !isAuthEndpoint) {
     original._retried = true;
+    if (isDemoToken) {
+      return Promise.reject(error);
+    }
     if (!refreshPromise) {
       refreshPromise = refreshAccessToken().finally(() => {
         refreshPromise = null;

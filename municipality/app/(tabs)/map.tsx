@@ -65,7 +65,7 @@ type MapLayerMode = 'street' | 'satellite' | 'osm';
 // Services' native Maps SDK regardless (needing a billed key just to
 // initialize at all). MapLibre has no such hidden dependency.
 const TILE_URLS: Record<MapLayerMode, string> = {
-  street: 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+  street: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
   satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
   osm: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
 };

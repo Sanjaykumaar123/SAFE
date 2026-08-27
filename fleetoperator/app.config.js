@@ -43,13 +43,13 @@ module.exports = {
     },
     android: {
       package: 'ai.safepath.fleetoperator',
+      usesCleartextTraffic: true,
       adaptiveIcon: {
         backgroundColor: '#0B1F33',
         foregroundImage: './assets/android-icon-foreground.png',
         backgroundImage: './assets/android-icon-background.png',
         monochromeImage: './assets/android-icon-monochrome.png',
       },
-      edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       // No ACCESS_BACKGROUND_LOCATION — monitoring only tracks while the app
       // is foregrounded (see DEFERRED.md); a real background service is a

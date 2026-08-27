@@ -40,13 +40,13 @@ module.exports = {
     },
     android: {
       package: 'ai.safepath.admin',
+      usesCleartextTraffic: true,
       adaptiveIcon: {
         backgroundColor: '#0D1C32',
         foregroundImage: './assets/android-icon-foreground.png',
         backgroundImage: './assets/android-icon-background.png',
         monochromeImage: './assets/android-icon-monochrome.png',
       },
-      edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       permissions: ['ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION'],
     },

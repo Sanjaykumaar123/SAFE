@@ -3,12 +3,12 @@ import Constants from 'expo-constants';
 function getResolvedApiUrl(): string {
   try {
     const envUrl = process.env.EXPO_PUBLIC_API_URL;
-    if (envUrl && envUrl.trim().length > 0 && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+    if (envUrl && envUrl.trim().length > 0) {
       return envUrl.trim();
     }
-    return envUrl && envUrl.trim().length > 0 ? envUrl.trim() : 'https://safepath-backend-latest.onrender.com/api';
+    return 'http://localhost:8000/api';
   } catch {
-    return process.env.EXPO_PUBLIC_API_URL ?? 'https://safepath-backend-latest.onrender.com/api';
+    return process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api';
   }
 }
 

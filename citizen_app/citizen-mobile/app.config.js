@@ -1,16 +1,12 @@
-// Standalone Expo project for the SafePath AI Municipality app — a
-// separate codebase/repo from the Citizen app on purpose (see README.md),
-// talking to the same shared SafePath backend purely over HTTP.
-//
 // §map-provider — maps run on MapLibre Native (constants/mapStyle.ts), not
 // react-native-maps/Google Maps: Android's Google-backed MapView needs a
 // billed Google Cloud API key just to initialize, MapLibre doesn't.
 
 module.exports = {
   expo: {
-    name: 'SafePath Municipality',
-    slug: 'safepath-ai-municipality',
-    scheme: 'safepathmunicipality',
+    name: 'SafePath AI',
+    slug: 'safepath-ai-citizen',
+    scheme: 'safepathai',
     version: '1.0.0',
     orientation: 'portrait',
     icon: './assets/icon.png',
@@ -29,24 +25,24 @@ module.exports = {
     },
     ios: {
       supportsTablet: true,
-      bundleIdentifier: 'ai.safepath.municipality',
+      bundleIdentifier: 'ai.safepath.citizen',
       infoPlist: {
-        NSCameraUsageDescription: 'SafePath Municipality uses your camera to capture repair progress photos.',
-        NSLocationWhenInUseUsageDescription: 'SafePath Municipality uses your location to tag inspection and repair evidence accurately.',
-        NSPhotoLibraryUsageDescription: 'SafePath Municipality lets you attach a photo when logging repair progress.',
+        NSCameraUsageDescription: 'SafePath uses your camera to capture photo evidence of road hazards you report.',
+        NSLocationWhenInUseUsageDescription: 'SafePath uses your location to show nearby road hazards and place your reports accurately.',
+        NSPhotoLibraryUsageDescription: 'SafePath lets you attach an existing photo when reporting a road hazard.',
       },
     },
     android: {
-      package: 'ai.safepath.municipality',
-      usesCleartextTraffic: true,
+      package: 'ai.safepath.citizen',
       adaptiveIcon: {
         backgroundColor: '#0B1F33',
         foregroundImage: './assets/android-icon-foreground.png',
         backgroundImage: './assets/android-icon-background.png',
         monochromeImage: './assets/android-icon-monochrome.png',
       },
+      edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
-      permissions: ['CAMERA', 'ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION'],
+      permissions: ['CAMERA', 'ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION', 'RECORD_AUDIO'],
     },
     web: {
       favicon: './assets/favicon.png',
@@ -64,15 +60,23 @@ module.exports = {
         },
       ],
       [
+        'expo-camera',
+        {
+          cameraPermission: 'SafePath uses your camera to capture photo evidence of road hazards you report.',
+          microphonePermission: 'SafePath uses your microphone to record optional video evidence of road hazards.',
+          recordAudioAndroid: true,
+        },
+      ],
+      [
         'expo-location',
         {
-          locationWhenInUsePermission: 'SafePath Municipality uses your location to tag inspection and repair evidence accurately.',
+          locationWhenInUsePermission: 'SafePath uses your location to show nearby road hazards and place your reports accurately.',
         },
       ],
       [
         'expo-image-picker',
         {
-          photosPermission: 'SafePath Municipality lets you attach a photo when logging repair progress.',
+          photosPermission: 'SafePath lets you attach an existing photo when reporting a road hazard.',
         },
       ],
       [
@@ -83,10 +87,12 @@ module.exports = {
         },
       ],
       '@maplibre/maplibre-react-native',
-      'expo-dev-client',
     ],
     extra: {
       router: {},
+      eas: {
+        projectId: '3869e547-d14b-49c3-a005-876acd62240f',
+      },
     },
   },
 };

@@ -62,7 +62,7 @@ export default function FleetScreen() {
       ) : isError ? (
         <ErrorState message={(error as Error)?.message ?? 'Could not load fleet.'} onRetry={refetch} />
       ) : !data?.items.length ? (
-        <EmptyState title="No vehicles found" message={place ? `Nothing within ${place.radiusKm}km of ${place.name}.` : 'Search a place to see nearby fleet activity.'} />
+        <EmptyState title="No vehicles found" message={place ? `Nothing within ${place.radiusKm}km of ${place.name}.` : 'No vehicles matching the selected status.'} />
       ) : (
         <FlashList data={data.items} keyExtractor={(item) => item.id} renderItem={({ item }) => <VehicleCard vehicle={item} />} contentContainerStyle={styles.listContent} ItemSeparatorComponent={() => <View style={{ height: spacing.xs }} />} />
       )}

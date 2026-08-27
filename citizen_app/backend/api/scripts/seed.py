@@ -46,6 +46,10 @@ HAZARDS = [
     ("PTH-1034", HazardType.DEBRIS, "Mount Road", "Mount Road, near LIC Building", 13.0569, 80.2508, Severity.LOW, HazardStatus.UNDER_REPAIR, 0.66),
     ("PTH-1035", HazardType.BROKEN_PAVEMENT, "T. Nagar", "Pondy Bazaar, T. Nagar", 13.0418, 80.2341, Severity.MEDIUM, HazardStatus.ACTIVE, 0.83),
     ("PTH-1036", HazardType.POTHOLE, "Kilpauk", "Poonamallee High Road, Kilpauk", 13.0827, 80.2437, Severity.HIGH, HazardStatus.RESOLVED, 0.90),
+    ("PTH-1037", HazardType.MISSING_MANHOLE, "Luz Church Road", "Luz Church Road, Mylapore", 13.0336, 80.2678, Severity.CRITICAL, HazardStatus.ACTIVE, 0.97),
+    ("PTH-1038", HazardType.ROAD_DAMAGE, "LB Road", "Lattice Bridge Road, Adyar", 13.0067, 80.2571, Severity.HIGH, HazardStatus.VERIFIED, 0.92),
+    ("PTH-1039", HazardType.FLOODING, "Sterling Road", "Sterling Road Subway, Nungambakkam", 13.0722, 80.2394, Severity.CRITICAL, HazardStatus.ACTIVE, 0.96),
+    ("PTH-1040", HazardType.POTHOLE, "100 Feet Road", "100 Feet Road, Koyambedu", 13.0694, 80.1948, Severity.HIGH, HazardStatus.UNDER_REVIEW, 0.90),
 ]
 
 

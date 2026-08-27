@@ -13,7 +13,7 @@
  */
 import type { StyleSpecification } from '@maplibre/maplibre-react-native';
 
-export const CARTO_VOYAGER_TILE_URL = 'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png';
+export const CARTO_VOYAGER_TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
 // Not `as const` — `StyleSpecification`'s `tiles`/`layers` are typed as
 // mutable arrays, which a `readonly` const-asserted literal can't satisfy.
@@ -27,13 +27,14 @@ export function rasterStyleFor(tileUrlTemplate: string, attribution = '© OpenSt
   return {
     version: 8,
     sources: {
-      'raster-tiles': {
+      'raster-tiles-v2': {
         type: 'raster',
         tiles: [tileUrlTemplate],
         tileSize: 256,
+        maxzoom: 19,
         attribution,
       },
     },
-    layers: [{ id: 'raster-tiles-layer', type: 'raster', source: 'raster-tiles', minzoom: 0, maxzoom: 20 }],
+    layers: [{ id: 'raster-tiles-layer-v2', type: 'raster', source: 'raster-tiles-v2', minzoom: 0, maxzoom: 22 }],
   };
 }
