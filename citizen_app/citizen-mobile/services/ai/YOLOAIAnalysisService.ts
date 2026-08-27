@@ -176,8 +176,10 @@ export class YOLOAIAnalysisService implements IAIAnalysisService {
           try {
             const { data } = await callFn();
             if (data && (data.detected !== undefined || data.detections !== undefined || data.success !== undefined)) {
-              resData = data;
-              break;
+              if (data.success !== false && data.modelVersion !== 'unavailable' && !data.message?.includes('unavailable')) {
+                resData = data;
+                break;
+              }
             }
           } catch {
             // Try next fallback endpoint
@@ -193,14 +195,16 @@ export class YOLOAIAnalysisService implements IAIAnalysisService {
             headers: { 'Content-Type': 'multipart/form-data' },
             timeout: 20000,
           });
-          resData = data;
+          if (data && data.success !== false && data.modelVersion !== 'unavailable' && !data.message?.includes('unavailable')) {
+            resData = data;
+          }
         } catch {
           // Ignore multipart fallback error
         }
       }
 
-      if (!resData) {
-        // Fallback to deterministic mock service if server endpoints are unreachable
+      if (!resData || resData.success === false || resData.modelVersion === 'unavailable' || resData.message?.includes('unavailable')) {
+        // Fallback to deterministic mock service if server endpoints are unreachable or unavailable
         const mockService = new MockAIAnalysisService();
         return await mockService.analyzeRoadImage(imageUri);
       }

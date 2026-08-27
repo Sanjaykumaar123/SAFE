@@ -11,7 +11,9 @@ from functools import lru_cache
 from pathlib import Path
 
 import httpx
-from PIL import Image, ImageOps
+from PIL import Image, ImageFile, ImageOps
+
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 from app.core.config import settings
 from app.models.enums import HazardType, Severity
@@ -94,18 +96,11 @@ class YOLOAIAnalysisService(AIAnalysisService):
     async def analyze(self, *, image_bytes: bytes, filename: str) -> AIAnalysisResult:
         start = time.perf_counter()
 
-        raw_img = Image.open(io.BytesIO(image_bytes))
-        image = ImageOps.exif_transpose(raw_img).convert("RGB")
-        width, height = image.size
-
-        # Local in-process inference FIRST. The checkpoint ships with the repo
-        # and stays resident after the first load (lru_cache), so this is the
-        # fast, reliable path. It previously ran *second*, behind an always-on
-        # remote-microservice attempt below — every request paid that hop's
-        # full timeout (and a possible cold-start delay on a hosted deploy)
-        # before ever reaching this bundled model. Remote is now an opt-in
-        # fallback, only tried if local inference itself raises.
         try:
+            raw_img = Image.open(io.BytesIO(image_bytes))
+            image = ImageOps.exif_transpose(raw_img).convert("RGB")
+            width, height = image.size
+
             model, device, model_version = _get_model_and_device()
 
             results = model.predict(
