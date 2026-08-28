@@ -15,7 +15,11 @@ services:
       - key: API_V1_PREFIX
         value: "/api"
       - key: AI_PROVIDER
-        value: mock # Set to mock for Render free tier (512MB RAM) to avoid PyTorch OOM
+        value: yolov8
+      - key: AI_SERVER_URL
+        value: https://safepath-ai-latest.onrender.com # primary detection path — offloads inference off this 512MB free-tier box, which OOMs running PyTorch itself
+      - key: AI_MODEL_PATH
+        value: app/ml_models/best.pt # only used as a fallback if AI_SERVER_URL is unreachable
       - key: CORS_ORIGINS
         value: "*"
       - key: DATABASE_URL

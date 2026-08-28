@@ -42,13 +42,15 @@ class Settings(BaseSettings):
 
     # --- AI ---
     AI_PROVIDER: Literal["mock", "yolov8"] = "yolov8"
-    # Optional microservice URL of a separate AI Model API server. Leave empty
-    # (default) to always use the bundled local checkpoint (AI_MODEL_PATH) —
-    # fast and has no network/cold-start dependency. Only set this to run
-    # inference against a separate deployed AI server instead.
+    # URL of the standalone ai_model/ microservice. When set, this is the
+    # PRIMARY detection path (see app/services/ai/yolo_service.py) — tried
+    # first, on every request. AI_MODEL_PATH below is only an in-process
+    # fallback used when this server is unset, unreachable, or times out.
     AI_SERVER_URL: str = ""
     # Path to a YOLO .pt checkpoint, relative to backend/api/ (or absolute).
-    AI_MODEL_PATH: str = "app/ml_models/pothole_v2_final.pt"
+    # best.pt == ai_model/model/pothole_v2_training.pt (identical weights,
+    # verified by hash) — the checkpoint requested for fallback inference.
+    AI_MODEL_PATH: str = "app/ml_models/best.pt"
     # auto | cpu | 0 (CUDA device index) — "auto" picks CUDA if available, else CPU.
     AI_DEVICE: Literal["auto", "cpu", "0"] = "auto"
     AI_DETECTION_CONFIDENCE: float = 0.40
